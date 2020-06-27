@@ -6,20 +6,24 @@ import suite.suite.action.Action;
 
 import java.util.function.BiPredicate;
 
-public class Var<T> extends Trigger {
+public class Var<T> extends Trigger implements ValueContainer<T> {
 
-    public static<U> Var<U> past(Var<U> var, int shift) {
-        if(shift < 0) {
-            for (;shift < 0;++shift) {
-                var = new PreviousVar<>(var);
-            }
-        } else throw new RuntimeException("Past shift must be less than zero");
-
-        return var;
+    public static StoryVar story(Object title, Object ... intro) {
+        return new StoryVar(title, intro);
     }
+
+    public static StoryVar storyOf(Var<?> storyteller, Object intro, Object ... explication) {
+        StoryVar storyVar = new StoryVar(intro, explication);
+        storyVar.setStoryteller(storyteller);
+        storyteller.subjects.set(storyVar);
+        return storyVar;
+    }
+
+    public static final int TRANSIENT = 4;
 
     T value;
     final Subject subjects;
+    final boolean transientFlag;
 
     public Var() {
         this(null);
@@ -29,20 +33,19 @@ public class Var<T> extends Trigger {
         super();
         this.value = value;
         subjects = Suite.set();
+        transientFlag = false;
     }
 
     public Var(Subject params, Action recipe) {
-        this(false, params, recipe);
+        this(0, params, recipe);
     }
 
-    public Var(boolean forceFirstDetection, Subject params, Action recipe) {
+    public Var(int flags, Subject params, Action recipe) {
+        super();
         subjects = Suite.set();
-        recipe(params, recipe);
-        detectionFlag = forceFirstDetection;
-    }
-
-    public Subject s() {
-        return monitored;
+        instant = raised(flags, INSTANT);
+        transientFlag = raised(flags, TRANSIENT);
+        recipe(raised(flags, INITIAL_DETECTION), params, recipe);
     }
 
     @Override
@@ -52,13 +55,13 @@ public class Var<T> extends Trigger {
         }
         suspicionFlag = false;
         if(detectionFlag) {
+            detectionFlag = false;
             if(action != null) {
                 T t = action.play(monitored.front().advance(
-                        s -> Suite.set(s.key().direct(), s.asGiven(Var.class).get())
+                        s -> Suite.set(s.key().direct(), s.asGiven(ValueContainer.class).get())
                 ).toSubject()).asExpected();
                 set(t);
             }
-            detectionFlag = false;
             return true;
         }
         return false;
@@ -70,43 +73,71 @@ public class Var<T> extends Trigger {
     }
 
     public void set(T newValue) {
-        subjects.front().values().filter(Monitor.class).forEach(Monitor::raiseDetectionFlag);
         value = newValue;
+        subjects.front().values().filter(Monitor.class).forEach(Monitor::raiseDetectionFlag);
     }
 
     @Override
     public void raiseDetectionFlag() {
-        if(!detectionFlag) {
-            subjects.front().keys().filter(Monitor.class).forEach(Monitor::raiseSuspicionFlag);
+        if(instant) {
             detectionFlag = true;
+            detection();
+        } else if(!detectionFlag) {
+            detectionFlag = true;
+            subjects.front().keys().filter(Monitor.class).forEach(Monitor::raiseSuspicionFlag);
+        }
+    }
+
+    @Override
+    protected void raiseSuspicionFlag() {
+        if(instant) {
+            suspicionFlag = true;
+            detection();
+        } else if(!suspicionFlag && !detectionFlag) {
+            suspicionFlag = true;
+            subjects.front().keys().filter(Monitor.class).forEach(Monitor::raiseSuspicionFlag);
         }
     }
 
     public void recipe(Subject params, Action action) {
+        recipe(false, params, action);
+    }
+
+    public void recipe(boolean initialDetection, Subject params, Action action) {
         this.action = action;
         if(this.monitored != null) {
             this.monitored.front().values().filter(Var.class).forEach(v -> v.unsetSubject(this));
         }
         monitored = Suite.set();
         for(var p : params.front()) {
-            if(p.assigned(Var.class)) {
-                Var<?> v = p.asExpected();
-                v.setSubject(this);
-                monitored.set(p.key().direct(), v);
-            } else if(p.assigned(Integer.class)) {
-                Var<T> v = Var.past(this, p.asInt());
+            if(p.assigned(StoryVar.class) && !p.asGiven(StoryVar.class).introduced()) {
+                StoryVar v = p.asExpected();
+                v.setStoryteller(this);
                 subjects.set(v);
                 monitored.set(p.key().direct(), v);
+            } else if(p.assigned(ValueContainer.class)) {
+                ValueContainer<?> v = p.asExpected();
+                monitored.set(p.key().direct(), v);
+                if(v instanceof Var)((Var<?>)v).setSubject(this);
+            } else if (p.direct() == CURRENT_VALUE) {
+                monitored.set(p.key().direct(), this);
+            } else if (p.direct() == SELF) {
+                monitored.set(p.key().direct(), new Const<>(this));
+            } else {
+                monitored.set(p.key().direct(), new Const<>(p.direct()));
             }
         }
-        suspicionFlag = true;
-        detectionFlag = false;
+        if(initialDetection)raiseDetectionFlag();
+        else raiseSuspicionFlag();
     }
 
     public void assign(Var<T> v) {
         this.monitored = Suite.set(v);
         v.setSubject(this);
         action = s -> s;
+        if(v.suspicionFlag || v.detectionFlag) {
+            raiseSuspicionFlag();
+        }
     }
 
     protected void setSubject(Monitor monitor) {
@@ -133,5 +164,13 @@ public class Var<T> extends Trigger {
         SuppressedVar<T> suppressedVar = new SuppressedVar<>(suppressor);
         suppressedVar.assign(this);
         return suppressedVar;
+    }
+
+    public Const<Var<T>> far() {
+        return new Const<>(this);
+    }
+
+    public Subject getSubjects() {
+        return subjects;
     }
 }

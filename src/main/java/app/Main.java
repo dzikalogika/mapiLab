@@ -1,9 +1,7 @@
 package app;
 
 import app.model.*;
-import app.model.variable.Monitor;
-import app.model.variable.IdVar;
-import app.model.variable.Var;
+import app.model.variable.*;
 import jorg.jorg.Jorg;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -11,6 +9,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
 import suite.suite.Subject;
 import suite.suite.Suite;
+import suite.suite.action.Impression;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL45.*;
@@ -19,8 +18,9 @@ import static org.lwjgl.system.MemoryUtil.*;
 public class Main {
 
     static Camera camera = Camera.form(Jorg.withAdapter("speed", Camera.MOVEMENT_SPEED).parse("[pos]#1 [#speed]5,0 #[1]0,0]0,0]3,0"));
-    static FixedSizeText text;
+    static TextGraphic text;
     static KeyboardController keyboard = new KeyboardController();
+    static MouseController mouse = new MouseController();
 
     static float deltaTime = 0.0f;	// Time between current frame and last frame
     static float lastFrame = 0.0f; // Time of last frame
@@ -37,14 +37,27 @@ public class Main {
 
     static Subject monitors = Suite.set();
 
-    public static void monitor(Object key, Subject monitored) {
-        monitors.set(key, new Monitor(monitored));
+    public static Monitor monitor(Subject monitored) {
+        Monitor monitor = new Monitor(monitored);
+        monitors.set(monitor);
+        return monitor;
+    }
+
+    public static Trigger trigger(Subject monitored, Impression impression) {
+        Trigger trigger = new Trigger(Trigger.INSTANT, monitored, impression);
+        monitors.set(trigger);
+        return trigger;
     }
 
     public static boolean detection(Object key) {
         var s = monitors.get(key);
         if(s.settled())return s.asGiven(Monitor.class).detection();
         return false;
+    }
+
+    public static void abort(Object key) {
+        var s = monitors.get(key);
+        if(s.settled()) s.asGiven(Monitor.class).abort();
     }
 
     public static void main(String[] args) {
@@ -82,7 +95,7 @@ public class Main {
 
 //        glfwSetWindowOpacity(window, 0.5f);
 
-        text = FixedSizeText.form(Suite.set());
+        text = TextGraphic.form(Suite.set());
         text.getProjectionWidth().assign(windowWidth);
         text.getProjectionHeight().assign(windowHeight);
 
@@ -101,20 +114,12 @@ public class Main {
             windowHeight.set(height);
         });
 
-        glfwSetCursorPosCallback(window, (window1, xpos, ypos) -> {
-            mouseCursorX.set(xpos);
-            mouseCursorY.set(ypos);
-        });
-
-        glfwSetScrollCallback(window, (window1, xoffset, yoffset) -> {
-            mouseScrollX.set(xoffset);
-            mouseScrollY.set(yoffset);
-        });
+        glfwSetCursorPosCallback(window, mouse::reportPositionEvent);
+        glfwSetMouseButtonCallback(window, mouse::reportMouseButtonEvent);
+        glfwSetScrollCallback(window, mouse::reportScrollEvent);
 
         glfwSetKeyCallback(window, keyboard::reportKeyEvent);
-
-        monitor(1, Suite.set(mouseCursorY));
-        monitor(2, Suite.set(mouseScrollY));
+        glfwSetCharModsCallback(window, keyboard::reportCharEvent);
 
         float[] vertices = new float[]{
             -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -201,23 +206,44 @@ public class Main {
 //        shader.setTexture("texture1", 0, box);
 //        shader.setTexture("texture2", 1, face);
 
-        Var<String> str = new Var<>(true, Suite.
+        Var<String> str = new Var<>(Var.INITIAL_DETECTION, Suite.
                 set(keyboard.getKey(GLFW_KEY_UP).getPressed()).
                 set(keyboard.getKey(GLFW_KEY_LEFT).getPressed()).
                 set(keyboard.getKey(GLFW_KEY_DOWN).getPressed()).
                 set(keyboard.getKey(GLFW_KEY_RIGHT).getPressed()),
                 s -> {
                     String string = "" +
-                    (s.at(0).asGiven(Boolean.class) ? "^" : "_") +
-                    (s.at(1).asGiven(Boolean.class) ? "<" : "_") +
-                    (s.at(2).asGiven(Boolean.class) ? "v" : "_") +
-                    (s.at(3).asGiven(Boolean.class) ? ">" : "_");
-                    System.out.println(string);
+                    (s.getAt(0).asGiven(Boolean.class) ? "^" : "_") +
+                    (s.getAt(1).asGiven(Boolean.class) ? "<" : "_") +
+                    (s.getAt(2).asGiven(Boolean.class) ? "v" : "_") +
+                    (s.getAt(3).asGiven(Boolean.class) ? ">" : "_");
                     return Suite.set(string);
                 });
 
-        Var<String> space = new Var<>(true, Suite.set(-1).set(keyboard.getKey(GLFW_KEY_SPACE).getState()),
-                s -> Suite.set(s.asGiven(String.class, "") + s.at(1).asInt()));
+        Var<String> space = new Var<>(Var.INITIAL_DETECTION, Suite.set(Var.story("_@/\"")).set(keyboard.getKey(GLFW_KEY_SPACE).getState()),
+                s -> Suite.set("." + s.asString()));
+
+        Text text1 = Text.form(Suite.set("x", 30).set("y", 50).set("size", 50f).set("text", "text").set("r", 200).set("b", 200));
+//        text1.getContent().recipe(Suite.set(Var.story("")).set(keyboard.getCharEvent()), s -> {
+//            KeyboardController.CharEvent e = s.getAt(1).asExpected();
+//            return Suite.set(s.asString() + new StringBuilder().appendCodePoint(e.getCodepoint()).toString());
+//        });
+        Trigger trigger = new Trigger(Trigger.INSTANT, Suite.set(keyboard.getCharEvent()).set(text1.getContent().far()), s -> {
+            KeyboardController.CharEvent e = s.asExpected();
+            Var<String> content = s.recent().asExpected();
+            content.set(content.get() + new StringBuilder().appendCodePoint(e.getCodepoint()).toString());
+        });
+
+        Trigger t1 = trigger(Suite.set(text1.getContent().far()).set(keyboard.getKey(GLFW_KEY_BACKSPACE).getPressed().suppress((s1, s2) -> !s2)).set("backspace"), s -> {
+            Var<String> var = s.asExpected();
+            String content = var.get();
+            if(content.length() > 0) var.set(content.substring(0, content.length() - 1));
+        });
+
+        trigger(Suite.set(keyboard.getKey(GLFW_KEY_ENTER).getState()).set(Trigger.SELF).set(1, t1), s -> {
+            s.get(1).asGiven(Trigger.class).abort();
+            s.get(Trigger.SELF).asGiven(Trigger.class).abort();
+        });
 
         while(!glfwWindowShouldClose(window))
         {
@@ -244,8 +270,9 @@ public class Main {
 //                glDrawArrays(GL_TRIANGLES, 0, 36);
 //            }
 
-            text.render(str.get(), 30f, 300f, new Vector3f(0.5f, 0.8f, 0.2f));
-            text.render(space.get(), 30f, 400f, new Vector3f(0.5f, 0.8f, 0.2f));
+            text.render(str.get(), 30f, 300f, 1., new Vector3f(0.5f, 0.8f, 0.2f));
+            text.render(space.get(), 30f, 400f, 1., new Vector3f(0.5f, 0.8f, 0.2f));
+            text1.render();
 
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
             // -------------------------------------------------------------------------------

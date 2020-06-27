@@ -15,7 +15,6 @@ import suite.suite.util.Cascade;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE;
@@ -26,7 +25,14 @@ import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.stb.STBTruetype.*;
 import static org.lwjgl.stb.STBTruetype.stbtt_GetFontVMetrics;
 
-public class FixedSizeText {
+public class TextGraphic {
+
+    private static final Subject sized = Suite.set();
+
+    public static TextGraphic getForSize(double size) {
+        int s = ((int)Math.min(Math.ceil(Math.abs(size)), 191.) + 32) / 32;
+        return sized.getDone(s, () -> TextGraphic.form(Suite.set("size", s * 32))).asExpected();
+    }
 
     private static final Shader defaultShader = Jorg.withRecipe(Shader::form).read(Shader.class.getClassLoader().getResourceAsStream("jorg/textShader.jorg"));
 
@@ -48,19 +54,19 @@ public class FixedSizeText {
     private final Var<Integer> projectionHeight;
     private final Monitor projectionMonitor;
 
-    public static FixedSizeText form(Subject sub) {
+    public static TextGraphic form(Subject sub) {
         Shader shader = sub.get("shader").orGiven(defaultShader);
         String font = sub.get("font").orGiven("ttf/trebuc.ttf");
         int fontSize = Suite.from(sub).get("size").orGiven(24);
 
-        return new FixedSizeText(shader, font, fontSize, 800, 600);
+        return new TextGraphic(shader, font, fontSize, 800, 600);
     }
 
-    public FixedSizeText(Shader shader, String fontPath, int fontSize, int projectionWidth, int projectionHeight) {
+    public TextGraphic(Shader shader, String fontPath, int fontSize, int projectionWidth, int projectionHeight) {
         this.shader = new Var<>(shader);
         this.fontPath = fontPath;
         this.size = fontSize;
-        this.bitmapWidth = 512;
+        this.bitmapWidth = 1024;
         this.bitmapHeight = 512;
         this.projectionWidth = new Var<>(projectionWidth);
         this.projectionHeight = new Var<>(projectionHeight);
@@ -85,15 +91,15 @@ public class FixedSizeText {
         this.descent = descent[0];
         this.lineGap = lineGap[0];
 
-        bake(' ', '~', 512, 512);
+        bake(' ', '~', bitmapWidth, bitmapHeight);
         // Polskie krzaki
-        bake(211, 211, 512, 512);
-        bake(243, 243, 512, 512);
-        bake(260, 263, 512, 512);
-        bake(280, 281, 512, 512);
-        bake(321, 324, 512, 512);
-        bake(346, 347, 512, 512);
-        bake(377, 380, 512, 512);
+        bake(211, 211, bitmapWidth, bitmapHeight);
+        bake(243, 243, bitmapWidth, bitmapHeight);
+        bake(260, 263, bitmapWidth, bitmapHeight);
+        bake(280, 281, bitmapWidth, bitmapHeight);
+        bake(321, 324, bitmapWidth, bitmapHeight);
+        bake(346, 347, bitmapWidth, bitmapHeight);
+        bake(377, 380, bitmapWidth, bitmapHeight);
 
         vbo = glGenBuffers();
         vao = glGenVertexArrays();
@@ -157,13 +163,14 @@ public class FixedSizeText {
         return projectionHeight;
     }
 
-    public void render(String text, float x, float y, Vector3f color) {
+    public void render(String text, float x, float y, double scale, Vector3f color) {
 
         float[] X = new float[]{x};
         float[] Y = new float[]{y};
         Shader shader = this.shader.get();
         int width = projectionWidth.get();
         int height = projectionHeight.get();
+        float s = (float)scale;
 
         shader.use();
         if(projectionMonitor.detection()) {
@@ -174,29 +181,33 @@ public class FixedSizeText {
         glBindVertexArray(vao);
 
         STBTTAlignedQuad quad = STBTTAlignedQuad.create();
-        int lastCodePoint = 0;
 
         Cascade<Integer> codePoints = new Cascade<>(text.codePoints().iterator());
 
         for(int codePoint : codePoints.toEnd()) {
+            if(chars.get(codePoint).desolated()) {
+                bake(codePoint, codePoint, bitmapWidth, bitmapHeight);
+            }
             CharacterTexture charTex = chars.get(codePoint).asExpected();
+            float xRef = X[0];
+            float yRef = Y[0];
 
             stbtt_GetBakedQuad(charTex.getBuffer(), bitmapWidth, bitmapHeight, charTex.getBufferOffset(),
                     X, Y, quad, true);
 
-//            if(codePoints.getFalls() > 1) {
-//                float kernAdvance = stbtt_GetCodepointKernAdvance(fontInfo, lastCodePoint, codePoint);
-//                x0 += kernAdvance;
-//                x1 += kernAdvance;
-//            }
+            float x0 = scale(quad.x0(), xRef, s);
+            float x1 = scale(quad.x1(), xRef, s);
+            float y0 = height - scale(quad.y0(), yRef, s);
+            float y1 = height - scale(quad.y1(), yRef, s);
+            X[0] = scale(X[0], xRef, s);
 
             float[] vertices = new float[] {
-                    quad.x0(), height - quad.y0(), quad.s0(), quad.t0(),
-                    quad.x0(), height - quad.y1(), quad.s0(), quad.t1(),
-                    quad.x1(), height - quad.y0(), quad.s1(), quad.t0(),
-                    quad.x1(), height - quad.y0(), quad.s1(), quad.t0(),
-                    quad.x0(), height - quad.y1(), quad.s0(), quad.t1(),
-                    quad.x1(), height - quad.y1(), quad.s1(), quad.t1(),
+                    x0, y0, quad.s0(), quad.t0(),
+                    x0, y1, quad.s0(), quad.t1(),
+                    x1, y0, quad.s1(), quad.t0(),
+                    x1, y0, quad.s1(), quad.t0(),
+                    x0, y1, quad.s0(), quad.t1(),
+                    x1, y1, quad.s1(), quad.t1(),
             };
 
             glBindTexture(GL_TEXTURE_2D, charTex.getTextureGlid());
@@ -204,10 +215,13 @@ public class FixedSizeText {
             glBufferSubData(GL_ARRAY_BUFFER, 0, vertices);
             glDrawArrays(GL_TRIANGLES, 0, 6);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
-            lastCodePoint = codePoint;
         }
         glBindVertexArray(0);
         glBindTexture(GL_TEXTURE_2D, 0);
+    }
+
+    private float scale(float rel, float ref, float scale) {
+        return (rel - ref) * scale + ref;
     }
 
 //    private float getStringWidth(STBTTFontinfo info, String text, int fontHeight) {

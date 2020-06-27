@@ -1,20 +1,19 @@
 package app.model;
 
+import app.model.variable.EqVar;
 import app.model.variable.IdVar;
 import app.model.variable.Var;
 import org.lwjgl.glfw.GLFW;
 import suite.suite.Subject;
 import suite.suite.Suite;
-
-import java.util.LinkedList;
-import java.util.Queue;
+import suite.suite.action.Action;
 
 public class KeyboardController {
 
     public static class Key {
         Var<Integer> state = new Var<>(GLFW.GLFW_RELEASE);
-        Var<Boolean> pressed = new IdVar<>(true, Suite.set(state),
-                s -> Suite.set(s.asGiven(Integer.class) != GLFW.GLFW_RELEASE));
+        Var<Boolean> pressed = new EqVar<>(Var.INITIAL_DETECTION, Suite.set(state),
+                Action.wrap(Integer.class, i -> i != GLFW.GLFW_RELEASE));
 
         public Var<Integer> getState() {
             return state;
@@ -25,7 +24,7 @@ public class KeyboardController {
         }
     }
 
-    static class KeyEvent {
+    public static class KeyEvent {
         int scanCode;
         int eventType;
         int modifiers;
@@ -35,18 +34,57 @@ public class KeyboardController {
             this.eventType = eventType;
             this.modifiers = modifiers;
         }
+
+        public int getScanCode() {
+            return scanCode;
+        }
+
+        public int getEventType() {
+            return eventType;
+        }
+
+        public int getModifiers() {
+            return modifiers;
+        }
+    }
+
+    public static class CharEvent {
+        int codepoint;
+        int modifiers;
+
+        public CharEvent(int codepoint, int modifiers) {
+            this.codepoint = codepoint;
+            this.modifiers = modifiers;
+        }
+
+        public int getCodepoint() {
+            return codepoint;
+        }
+
+        public int getModifiers() {
+            return modifiers;
+        }
     }
 
     private final Subject keys = Suite.thready();
-    private final Queue<KeyEvent> recorder = new LinkedList<>();
+    private final Var<KeyEvent> keyEvent = new Var<>();
+    private final Var<CharEvent> charEvent = new Var<>();
 
     public void reportKeyEvent(long window, int keyCode, int scanCode, int eventType, int modifiers) {
-        recorder.add(new KeyEvent(scanCode, eventType, modifiers));
+        keyEvent.set(new KeyEvent(scanCode, eventType, modifiers));
         getKeyByScanCode(scanCode).state.set(eventType);
     }
 
-    public Queue<KeyEvent> getRecorder() {
-        return recorder;
+    public Var<KeyEvent> getKeyEvent() {
+        return keyEvent;
+    }
+
+    public void reportCharEvent(long window, int codepoint, int modifiers) {
+        charEvent.set(new CharEvent(codepoint, modifiers));
+    }
+
+    public Var<CharEvent> getCharEvent() {
+        return charEvent;
     }
 
     public boolean pressed(int keyCode) {

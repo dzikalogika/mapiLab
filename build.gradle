@@ -57,6 +57,7 @@ dependencies {
             branch = 'master'
         }
     }
+
     implementation("lpo:jorg") {
         version {
             branch = 'master'

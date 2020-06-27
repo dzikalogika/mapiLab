@@ -16,14 +16,15 @@ public class IdVar<T> extends Var<T> {
         super(params, recipe);
     }
 
-    public IdVar(boolean forceFirstDetection, Subject params, Action recipe) {
-        super(forceFirstDetection, params, recipe);
+    public IdVar(int flags, Subject params, Action recipe) {
+        super(flags, params, recipe);
     }
 
     @Override
     public void set(T newValue) {
         if(value != newValue) {
             super.set(newValue);
+            subjects.front().values().filter(Monitor.class).forEach(Monitor::raiseDetectionFlag);
         }
     }
 }

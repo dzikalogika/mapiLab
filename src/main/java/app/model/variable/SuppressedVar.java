@@ -9,25 +9,31 @@ import java.util.function.BiPredicate;
 public class SuppressedVar<T> extends Var<T> {
 
     private BiPredicate<T, T> suppressor;
-    
+
     public SuppressedVar(BiPredicate<T, T> suppressor) {
         this.suppressor = suppressor;
     }
 
-    public SuppressedVar(BiPredicate<T, T> suppressor, T value) {
+    public SuppressedVar(T value, BiPredicate<T, T> suppressor) {
         super(value);
         this.suppressor = suppressor;
     }
 
-    public SuppressedVar(BiPredicate<T, T> suppressor, Subject params, Action recipe) {
+    public SuppressedVar(Subject params, Action recipe, BiPredicate<T, T> suppressor) {
         super(params, recipe);
         this.suppressor = suppressor;
     }
 
+    public SuppressedVar(int flags, Subject params, Action recipe, BiPredicate<T, T> suppressor) {
+        super(flags, params, recipe);
+        this.suppressor = suppressor;
+    }
+
     public void set(T newValue) {
-        if(!suppressor.test(value, newValue)) {
+        T previousValue = value;
+        value = newValue;
+        if(!suppressor.test(previousValue, newValue)) {
             subjects.front().values().filter(Monitor.class).forEach(Monitor::raiseDetectionFlag);
         }
-        value = newValue;
     }
 }
