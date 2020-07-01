@@ -77,6 +77,7 @@ public class Trigger extends Monitor{
         if(instant)detection();
     }
 
+    @Override
     public void abort() {
         super.abort();
         action = null;

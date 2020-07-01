@@ -19,6 +19,10 @@ public class Var<T> extends Trigger implements ValueContainer<T> {
         return storyVar;
     }
 
+    public static<V> Var<V> build(V value, Subject params, Action action) {
+        return new Var<>(0, value, params, action);
+    }
+
     public static final int TRANSIENT = 4;
 
     T value;
@@ -37,23 +41,28 @@ public class Var<T> extends Trigger implements ValueContainer<T> {
     }
 
     public Var(Subject params, Action recipe) {
-        this(0, params, recipe);
+        this(0, null, params, recipe);
     }
 
     public Var(int flags, Subject params, Action recipe) {
+        this(flags, null, params, recipe);
+    }
+
+    public Var(int flags, T value, Subject params, Action recipe) {
         super();
         subjects = Suite.set();
         instant = raised(flags, INSTANT);
         transientFlag = raised(flags, TRANSIENT);
+        this.value = value;
         recipe(raised(flags, INITIAL_DETECTION), params, recipe);
     }
 
     @Override
     public boolean detection() {
         if(!detectionFlag && suspicionFlag) {
+            suspicionFlag = false;
             monitored.front().values().filter(Var.class).forEach(Var::detection);
-        }
-        suspicionFlag = false;
+        } else suspicionFlag = false;
         if(detectionFlag) {
             detectionFlag = false;
             if(action != null) {
@@ -172,5 +181,10 @@ public class Var<T> extends Trigger implements ValueContainer<T> {
 
     public Subject getSubjects() {
         return subjects;
+    }
+
+    @Override
+    public void abort() {
+        super.abort();
     }
 }

@@ -30,20 +30,16 @@ public class Main {
 
     static Var<Integer> windowWidth = new Var<>(800);
     static Var<Integer> windowHeight = new Var<>(600);
-    static Var<Double> mouseCursorX = new Var<>();
-    static Var<Double> mouseCursorY = new Var<>();
-    static Var<Double> mouseScrollX = new IdVar<>();
-    static Var<Double> mouseScrollY = new IdVar<>();
 
     static Subject monitors = Suite.set();
 
-    public static Monitor monitor(Subject monitored) {
+    public static Monitor setOn(Subject monitored) {
         Monitor monitor = new Monitor(monitored);
         monitors.set(monitor);
         return monitor;
     }
 
-    public static Trigger trigger(Subject monitored, Impression impression) {
+    public static Trigger setOn(Subject monitored, Impression impression) {
         Trigger trigger = new Trigger(Trigger.INSTANT, monitored, impression);
         monitors.set(trigger);
         return trigger;
@@ -55,9 +51,12 @@ public class Main {
         return false;
     }
 
-    public static void abort(Object key) {
+    public static void cancel(Object key) {
         var s = monitors.get(key);
-        if(s.settled()) s.asGiven(Monitor.class).abort();
+        if(s.settled()) {
+            monitors.unset(s.key().direct());
+            s.asGiven(Monitor.class).abort();
+        }
     }
 
     public static void main(String[] args) {
@@ -100,6 +99,7 @@ public class Main {
         text.getProjectionHeight().assign(windowHeight);
 
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        glfwSetInputMode(window, GLFW_LOCK_KEY_MODS, GLFW_TRUE);
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         glEnable(GL_BLEND);
@@ -220,29 +220,27 @@ public class Main {
                     return Suite.set(string);
                 });
 
-        Var<String> space = new Var<>(Var.INITIAL_DETECTION, Suite.set(Var.story("_@/\"")).set(keyboard.getKey(GLFW_KEY_SPACE).getState()),
+        Var<String> space = Var.build("_@/\"", Suite.set(Var.CURRENT_VALUE).set(keyboard.getKey(GLFW_KEY_SPACE).getState()),
                 s -> Suite.set("." + s.asString()));
 
         Text text1 = Text.form(Suite.set("x", 30).set("y", 50).set("size", 50f).set("text", "text").set("r", 200).set("b", 200));
-//        text1.getContent().recipe(Suite.set(Var.story("")).set(keyboard.getCharEvent()), s -> {
-//            KeyboardController.CharEvent e = s.getAt(1).asExpected();
-//            return Suite.set(s.asString() + new StringBuilder().appendCodePoint(e.getCodepoint()).toString());
-//        });
-        Trigger trigger = new Trigger(Trigger.INSTANT, Suite.set(keyboard.getCharEvent()).set(text1.getContent().far()), s -> {
+
+        setOn(Suite.set(keyboard.getCharEvent()).set(text1.getContent().far()), s -> {
             KeyboardController.CharEvent e = s.asExpected();
             Var<String> content = s.recent().asExpected();
-            content.set(content.get() + new StringBuilder().appendCodePoint(e.getCodepoint()).toString());
+            content.set(new StringBuilder(content.get()).appendCodePoint(e.getCodepoint()).toString());
         });
 
-        Trigger t1 = trigger(Suite.set(text1.getContent().far()).set(keyboard.getKey(GLFW_KEY_BACKSPACE).getPressed().suppress((s1, s2) -> !s2)).set("backspace"), s -> {
+        Trigger t1 = setOn(Suite.set(text1.getContent().far()).set(keyboard.getKey(GLFW_KEY_BACKSPACE)
+                .getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), s -> {
             Var<String> var = s.asExpected();
             String content = var.get();
             if(content.length() > 0) var.set(content.substring(0, content.length() - 1));
         });
 
-        trigger(Suite.set(keyboard.getKey(GLFW_KEY_ENTER).getState()).set(Trigger.SELF).set(1, t1), s -> {
-            s.get(1).asGiven(Trigger.class).abort();
-            s.get(Trigger.SELF).asGiven(Trigger.class).abort();
+        setOn(Suite.set(t1).set(Trigger.SELF).set(keyboard.getKey(GLFW_KEY_ENTER).getState()), s -> {
+            cancel(s.direct());
+            cancel(s.get(Trigger.SELF).direct());
         });
 
         while(!glfwWindowShouldClose(window))
