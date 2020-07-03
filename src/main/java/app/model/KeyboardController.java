@@ -1,19 +1,23 @@
 package app.model;
 
-import app.model.variable.EqVar;
-import app.model.variable.IdVar;
 import app.model.variable.Var;
 import org.lwjgl.glfw.GLFW;
 import suite.suite.Subject;
 import suite.suite.Suite;
-import suite.suite.action.Action;
 
 public class KeyboardController {
 
     public static class Key {
-        Var<Integer> state = new Var<>(GLFW.GLFW_RELEASE);
-        Var<Boolean> pressed = new EqVar<>(Var.INITIAL_DETECTION, Suite.set(state),
-                Action.wrap(Integer.class, i -> i != GLFW.GLFW_RELEASE));
+        Var<Integer> state = Var.create(GLFW.GLFW_RELEASE);
+        Var<Boolean> pressed = Var.compose(false, Suite.set(state).set(Var.OWN_VALUE), s -> {
+            int state = s.asInt();
+            boolean pressedSoFar = s.recent().asExpected();
+            if(pressedSoFar) {
+                return state == GLFW.GLFW_RELEASE ? Suite.set(false) : Suite.set();
+            } else {
+                return state == GLFW.GLFW_RELEASE ? Suite.set() : Suite.set(true);
+            }
+        });
 
         public Var<Integer> getState() {
             return state;
@@ -67,8 +71,8 @@ public class KeyboardController {
     }
 
     private final Subject keys = Suite.thready();
-    private final Var<KeyEvent> keyEvent = new Var<>();
-    private final Var<CharEvent> charEvent = new Var<>();
+    private final Var<KeyEvent> keyEvent = Var.create();
+    private final Var<CharEvent> charEvent = Var.create();
 
     public void reportKeyEvent(long window, int keyCode, int scanCode, int eventType, int modifiers) {
         keyEvent.set(new KeyEvent(scanCode, eventType, modifiers));

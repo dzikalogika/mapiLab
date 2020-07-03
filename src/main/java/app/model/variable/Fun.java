@@ -1,4 +1,4 @@
-package app.model.variable2;
+package app.model.variable;
 
 import suite.suite.Subject;
 import suite.suite.Suite;
@@ -9,25 +9,29 @@ import java.util.function.BiPredicate;
 
 public class Fun {
 
-    static Fun create(Subject inputs, Subject outputs, Action transition) {
+    public static class Const {}
+
+    public static final Const SELF = new Const();
+
+    public static Fun create(Subject inputs, Subject outputs, Action transition) {
         return new Fun(inputs, outputs, transition);
     }
 
-    static<T, T1 extends T> Fun assign(Var<T1> source, Var<T> target) {
+    public static<T, T1 extends T> Fun assign(Var<T1> source, Var<T> target) {
         return new Fun(Suite.set(source), Suite.set(0, target), s -> Suite.set(0, s.direct()));
     }
 
-    static<T, T1 extends T> Fun suppress(Var<T1> source, Var<T> target, BiPredicate<T1, T> suppressor) {
+    public static<T, T1 extends T> Fun suppress(Var<T1> source, Var<T> target, BiPredicate<T1, T> suppressor) {
         return new Fun(Suite.set(0, source).set(target), Suite.set(0, target),
-                s -> suppressor.test(s.asExpected(), s.recent().asExpected()) ? Suite.set() : s);
+                s -> suppressor.test(s.recent().asExpected(), s.asExpected()) ? Suite.set() : s);
     }
 
-    static<T, T1 extends T> Fun suppressIdentity(Var<T1> source, Var<T> target) {
+    public static<T, T1 extends T> Fun suppressIdentity(Var<T1> source, Var<T> target) {
         return new Fun(Suite.set(0, source).set(target), Suite.set(0, target),
                 s -> s.direct() == s.recent().direct() ? Suite.set() : s);
     }
 
-    static<T, T1 extends T> Fun suppressEquality(Var<T1> source, Var<T> target) {
+    public static<T, T1 extends T> Fun suppressEquality(Var<T1> source, Var<T> target) {
         return new Fun(Suite.set(0, source).set(target), Suite.set(0, target),
                 s -> Objects.equals(s.direct(), s.recent().direct()) ? Suite.set() : s);
     }
@@ -38,10 +42,20 @@ public class Fun {
     boolean detection;
 
     public Fun(Subject inputs, Subject outputs, Action transition) {
-        this.inputs = inputs;
+        this.inputs = inputs.front().advance(s -> {
+            Var<?> v;
+            if(s.assigned(Var.class)) {
+                v = s.asExpected();
+            } else if(s.direct() == SELF) {
+                v = new Var<>(this, false, true);
+            } else {
+                v = new Var<>(s.direct(), false, true);
+            }
+            v.attachOutput(this);
+            return Suite.set(s.key().direct(), v);
+        }).toSubject();
         this.outputs = outputs;
         this.transition = transition;
-        this.inputs.front().values().filter(Var.class).forEach(v -> v.attachOutput(this));
         this.outputs.front().values().filter(Var.class).forEach(v -> v.attachInput(this));
     }
 
@@ -61,6 +75,7 @@ public class Fun {
     }
 
     public boolean press(boolean direct) {
+        if(utilized())throw new RuntimeException("Press on utilized Fun");
         if(detection) return false;
         if(direct)detection = true;
         for(var v : outputs.front().values().filter(Var.class)) {
@@ -70,13 +85,15 @@ public class Fun {
     }
 
     public void cancel() {
+        if(utilized())return;
         Subject collector = Suite.set(this);
-        outputs.front().keys().filter(Fun.class).forEach(f -> f.collectTransient(collector));
-        inputs.front().keys().filter(Fun.class).forEach(f -> f.collectTransient(collector));
+        outputs.front().keys().filter(Var.class).forEach(v -> v.collectTransient(collector));
+        inputs.front().keys().filter(Var.class).forEach(v -> v.collectTransient(collector));
         Var.utilizeCollected(collector);
     }
 
     public void detachOutput(Var<?> output) {
+        if(utilized())return;
         silentDetachOutput(output);
         Subject collector = Suite.set();
         collectTransient(collector);
@@ -85,6 +102,7 @@ public class Fun {
     }
 
     public void detachInput(Var<?> input) {
+        if(utilized())return;
         for (var s : inputs.front()){
             if(s.direct().equals(input)) {
                 cancel();
@@ -94,6 +112,7 @@ public class Fun {
     }
 
     boolean collectTransient(Subject collector) {
+        if(utilized())return true;
         if(collector.get(this).settled())return true;
         collector.set(this);
         boolean collect = outputs.front().keys().filter(Var.class).allTrue(f -> f.collectTransient(collector));
@@ -103,6 +122,7 @@ public class Fun {
     }
 
     void silentDetachOutput(Var<?> output) {
+        if(utilized())return;
         for (var s : outputs.front()){
             if(s.direct().equals(output)) {
                 outputs.unset(s.key().direct());
@@ -111,6 +131,7 @@ public class Fun {
     }
 
     void utilize(Subject collector) {
+        if(utilized())return;
         for(Var<?> v : inputs.front().values().filter(Var.class).filter(v -> collector.get(v).desolated())) {
             v.silentDetachOutput(this);
         }
@@ -120,5 +141,9 @@ public class Fun {
         inputs = null;
         outputs = null;
         transition = null;
+    }
+
+    public boolean utilized() {
+        return inputs == null;
     }
 }

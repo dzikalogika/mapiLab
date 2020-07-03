@@ -6,185 +6,266 @@ import suite.suite.action.Action;
 
 import java.util.function.BiPredicate;
 
-public class Var<T> extends Trigger implements ValueContainer<T> {
+public class Var<T> {
 
-    public static StoryVar story(Object title, Object ... intro) {
-        return new StoryVar(title, intro);
+    public static final Object OWN_VALUE = new Object();
+
+    static void utilizeCollected(Subject collector) {
+        for(var s : collector.front()) {
+            if(s.assigned(Var.class)) {
+                Var<?> var = s.asExpected();
+                var.utilize(collector);
+            } else if(s.assigned(Fun.class)) {
+                Fun fun = s.asExpected();
+                fun.utilize(collector);
+            }
+        }
     }
 
-    public static StoryVar storyOf(Var<?> storyteller, Object intro, Object ... explication) {
-        StoryVar storyVar = new StoryVar(intro, explication);
-        storyVar.setStoryteller(storyteller);
-        storyteller.subjects.set(storyVar);
-        return storyVar;
+    public static<V> Var<V> create() {
+        return new Var<>(null, false, false);
     }
 
-    public static<V> Var<V> build(V value, Subject params, Action action) {
-        return new Var<>(0, value, params, action);
+    public static<V> Var<V> create(V value) {
+        return new Var<>(value, false, false);
     }
 
-    public static final int TRANSIENT = 4;
+    public static<V> Var<V> create(V value, boolean instant) {
+        return new Var<>(value, instant, false);
+    }
+
+    public static<V> Var<V> compose(boolean pressed, Subject components) {
+        Var<V> composite = new Var<>(null, false, false);
+        Fun fun = Fun.create(prepareComponents(components, composite), Suite.set(composite), s -> Suite.set());
+        if(pressed)fun.press(true);
+        return composite;
+    }
+
+    public static<V> Var<V> compose(Subject components, Action recipe, Object resultKey) {
+        Var<V> composite = new Var<>(null, false, false);
+        Fun.create(prepareComponents(components, composite), Suite.set(resultKey, composite), recipe).press(true);
+        return composite;
+    }
+
+    public static<V> Var<V> compose(Subject components, Action recipe) {
+        return compose(components, s -> {
+            var result = recipe.play(s);
+            return result.settled() ? Suite.set(0, result.direct()) : Suite.set();
+        }, 0);
+    }
+
+    public static<V> Var<V> compose(V value, Subject components, Action recipe, Object resultKey) {
+        Var<V> composite = new Var<>(value, false, false);
+        Fun.create(prepareComponents(components, composite), Suite.set(resultKey, composite), recipe);
+        return composite;
+    }
+
+    public static<V> Var<V> compose(V value, Subject components, Action recipe) {
+        return compose(value, components, s -> {
+            var result = recipe.play(s);
+            return result.settled() ? Suite.set(0, result.direct()) : Suite.set();
+        }, 0);
+    }
+
+    static Subject prepareComponents(Subject components, Var<?> var) {
+        return components.front().advance(s -> s.direct() == OWN_VALUE ? Suite.set(s.key().direct(), var) : s).toSubject();
+    }
+
+    public static<V> V fetch(Subject s) {
+        Var<V> v = s.asExpected();
+        return v.get();
+    }
+
+    public static void main(String[] args) {
+        Var<Integer> a = Var.create(1, false);
+        Var<Integer> b = a.suppressEquality();
+        Var<Integer> c = Var.create(5, true);
+        Fun assign = Fun.assign(b, c);
+        System.out.println(c.get());
+        System.out.println("before set 2");
+        a.set(2);
+        System.out.println("after set 2");
+        System.out.println(c.get());
+        System.out.println("before set 2");
+        c.set(3);
+        a.set(2);
+        System.out.println("after set 2");
+        System.out.println(c.get());
+        a.set(5);
+        System.out.println(c.get());
+        c.detach();
+        System.out.println();
+    }
+
+    class NoVar {
+        Var<T> var;
+
+        public NoVar(Var<T> var) {
+            this.var = var;
+        }
+    }
 
     T value;
-    final Subject subjects;
-    final boolean transientFlag;
+    Subject inputs = Suite.set();
+    Subject outputs = Suite.set();
+    Subject detections;
+    boolean Transient;
 
-    public Var() {
-        this(null);
-    }
-
-    public Var(T value) {
-        super();
+    public Var(T value, boolean isInstant, boolean isTransient) {
         this.value = value;
-        subjects = Suite.set();
-        transientFlag = false;
-    }
-
-    public Var(Subject params, Action recipe) {
-        this(0, null, params, recipe);
-    }
-
-    public Var(int flags, Subject params, Action recipe) {
-        this(flags, null, params, recipe);
-    }
-
-    public Var(int flags, T value, Subject params, Action recipe) {
-        super();
-        subjects = Suite.set();
-        instant = raised(flags, INSTANT);
-        transientFlag = raised(flags, TRANSIENT);
-        this.value = value;
-        recipe(raised(flags, INITIAL_DETECTION), params, recipe);
-    }
-
-    @Override
-    public boolean detection() {
-        if(!detectionFlag && suspicionFlag) {
-            suspicionFlag = false;
-            monitored.front().values().filter(Var.class).forEach(Var::detection);
-        } else suspicionFlag = false;
-        if(detectionFlag) {
-            detectionFlag = false;
-            if(action != null) {
-                T t = action.play(monitored.front().advance(
-                        s -> Suite.set(s.key().direct(), s.asGiven(ValueContainer.class).get())
-                ).toSubject()).asExpected();
-                set(t);
-            }
-            return true;
-        }
-        return false;
+        if(!isInstant)detections = Suite.set();
+        this.Transient = isTransient;
     }
 
     public T get() {
-        detection();
+        if(detections != null) {
+            if (detections.settled()) {
+                Subject d = detections;
+                detections = Suite.set();
+                d.front().keys().filter(Fun.class).forEach(Fun::evaluate);
+            }
+        }
         return value;
     }
 
-    public void set(T newValue) {
-        value = newValue;
-        subjects.front().values().filter(Monitor.class).forEach(Monitor::raiseDetectionFlag);
+    T get(Fun fun) {
+        if(detections != null)detections.unset(fun);
+        return get();
     }
 
-    @Override
-    public void raiseDetectionFlag() {
-        if(instant) {
-            detectionFlag = true;
-            detection();
-        } else if(!detectionFlag) {
-            detectionFlag = true;
-            subjects.front().keys().filter(Monitor.class).forEach(Monitor::raiseSuspicionFlag);
+    public void set(T value) {
+        this.value = value;
+        outputs.front().keys().filter(Fun.class).forEach(f -> f.press(true));
+    }
+
+    void set(T value, Fun fun) {
+        if(detections != null)detections.unset(fun);
+        this.value = value;
+        outputs.front().keys().filter(Fun.class).filter(f -> f != fun).forEach(f -> f.press(true));
+    }
+
+    public void attachOutput(Fun fun) {
+        outputs.set(fun);
+    }
+
+    public void detachOutput(Fun fun) {
+        outputs.unset(fun);
+        fun.detachInput(this);
+    }
+
+    public void attachInput(Fun fun) {
+        inputs.set(fun);
+    }
+
+    public void detachInput(Fun fun) {
+        inputs.unset(fun);
+        fun.detachOutput(this);
+    }
+
+    public void detachInputs() {
+        for(Fun fun : inputs.front().keys().filter(Fun.class)) {
+            detachInput(fun);
+            if(inputs == null)return;
         }
     }
 
-    @Override
-    protected void raiseSuspicionFlag() {
-        if(instant) {
-            suspicionFlag = true;
-            detection();
-        } else if(!suspicionFlag && !detectionFlag) {
-            suspicionFlag = true;
-            subjects.front().keys().filter(Monitor.class).forEach(Monitor::raiseSuspicionFlag);
+    public void detachOutputs() {
+        for(Fun fun : outputs.front().keys().filter(Fun.class)) {
+            detachOutput(fun);
+            if(outputs == null)return;
         }
     }
 
-    public void recipe(Subject params, Action action) {
-        recipe(false, params, action);
+    public void detach() {
+        detachOutputs();
+        if(!isTransient())detachInputs();
     }
 
-    public void recipe(boolean initialDetection, Subject params, Action action) {
-        this.action = action;
-        if(this.monitored != null) {
-            this.monitored.front().values().filter(Var.class).forEach(v -> v.unsetSubject(this));
-        }
-        monitored = Suite.set();
-        for(var p : params.front()) {
-            if(p.assigned(StoryVar.class) && !p.asGiven(StoryVar.class).introduced()) {
-                StoryVar v = p.asExpected();
-                v.setStoryteller(this);
-                subjects.set(v);
-                monitored.set(p.key().direct(), v);
-            } else if(p.assigned(ValueContainer.class)) {
-                ValueContainer<?> v = p.asExpected();
-                monitored.set(p.key().direct(), v);
-                if(v instanceof Var)((Var<?>)v).setSubject(this);
-            } else if (p.direct() == CURRENT_VALUE) {
-                monitored.set(p.key().direct(), this);
-            } else if (p.direct() == SELF) {
-                monitored.set(p.key().direct(), new Const<>(this));
-            } else {
-                monitored.set(p.key().direct(), new Const<>(p.direct()));
+    boolean press(Fun fun) {
+        if(detections == null) {
+            fun.evaluate();
+            return true;
+        } else {
+            boolean trigger = detections.desolated();
+            detections.set(fun);
+            if(trigger) {
+                for (Fun f : outputs.front().keys().filter(Fun.class).filter(f -> f != fun)) {
+                    if (f.press(false)) return true;
+                }
             }
-        }
-        if(initialDetection)raiseDetectionFlag();
-        else raiseSuspicionFlag();
-    }
-
-    public void assign(Var<T> v) {
-        this.monitored = Suite.set(v);
-        v.setSubject(this);
-        action = s -> s;
-        if(v.suspicionFlag || v.detectionFlag) {
-            raiseSuspicionFlag();
+            return false;
         }
     }
 
-    protected void setSubject(Monitor monitor) {
-        subjects.set(monitor);
+    public boolean release() {
+        if(detections == null)return false;
+        if(detections.settled()) {
+            detections.unset();
+            return true;
+        } else return false;
     }
 
-    protected void unsetSubject(Monitor monitor) {
-        subjects.unset(monitor);
+    boolean collectTransient(Subject collector) {
+        if(collector.get(this).settled())return true;
+        boolean collect = isTransient() && outputs.front().keys().filter(Fun.class).allTrue(f -> f.collectTransient(collector));
+        if(collect) {
+            collector.set(this);
+            inputs.front().keys().filter(Fun.class).forEach(f -> f.collectTransient(collector));
+        }
+        return collect;
     }
 
-    public IdVar<T> suppressIdentity() {
-        IdVar<T> identityVar = new IdVar<>();
-        identityVar.assign(this);
-        return identityVar;
+    public boolean isTransient() {
+        return Transient;
     }
 
-    public EqVar<T> suppressEquality() {
-        EqVar<T> equalityVar = new EqVar<>();
-        equalityVar.assign(this);
-        return equalityVar;
+    public boolean isInstant() {
+        return detections == null;
     }
 
-    public SuppressedVar<T> suppress(BiPredicate<T, T> suppressor) {
-        SuppressedVar<T> suppressedVar = new SuppressedVar<>(suppressor);
-        suppressedVar.assign(this);
-        return suppressedVar;
+    void silentDetachInput(Fun fun) {
+        inputs.unset(fun);
     }
 
-    public Const<Var<T>> far() {
-        return new Const<>(this);
+    void silentDetachOutput(Fun fun) {
+        outputs.unset(fun);
     }
 
-    public Subject getSubjects() {
-        return subjects;
+    void utilize(Subject collector) {
+        // Dla outputów nie ma sensu ciche odpięcie, bo wszystkie takie funkcje i tak powinny zostać zutylizowane
+        for(Fun f : inputs.front().values().filter(Fun.class).filter(f -> collector.get(f).desolated())) {
+            f.silentDetachOutput(this);
+        }
+        inputs = null;
+        outputs = null;
+        detections = null;
     }
 
-    @Override
-    public void abort() {
-        super.abort();
+    public Var<T> suppress(BiPredicate<T, T> suppressor) {
+        Var<T> suppressed = new Var<>(value, true, true);
+        Fun.suppress(this, suppressed, suppressor);
+        return suppressed;
     }
+
+    public Var<T> suppressIdentity() {
+        Var<T> suppressed = new Var<>(value, true, true);
+        Fun.suppressIdentity(this, suppressed);
+        return suppressed;
+    }
+
+    public Var<T> suppressEquality() {
+        Var<T> suppressed = new Var<>(value, true, true);
+        Fun.suppressEquality(this, suppressed);
+        return suppressed;
+    }
+
+    public<V extends T> Var<T> assign(Var<V> var) {
+        Fun.assign(var, this);
+        return this;
+    }
+
+    public Var<Var<T>> self() {
+        return new Var<>(this, true, true);
+    }
+
 }

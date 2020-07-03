@@ -1,6 +1,5 @@
 package app.model;
 
-import app.model.variable.Monitor;
 import app.model.variable.Var;
 import jorg.jorg.Jorg;
 import org.joml.Matrix4f;
@@ -52,7 +51,7 @@ public class TextGraphic {
     private final Var<Shader> shader;
     private final Var<Integer> projectionWidth;
     private final Var<Integer> projectionHeight;
-    private final Monitor projectionMonitor;
+    private final Var<Object> projectionMonitor;
 
     public static TextGraphic form(Subject sub) {
         Shader shader = sub.get("shader").orGiven(defaultShader);
@@ -63,14 +62,14 @@ public class TextGraphic {
     }
 
     public TextGraphic(Shader shader, String fontPath, int fontSize, int projectionWidth, int projectionHeight) {
-        this.shader = new Var<>(shader);
+        this.shader = Var.create(shader);
         this.fontPath = fontPath;
         this.size = fontSize;
         this.bitmapWidth = 1024;
         this.bitmapHeight = 512;
-        this.projectionWidth = new Var<>(projectionWidth);
-        this.projectionHeight = new Var<>(projectionHeight);
-        this.projectionMonitor = new Monitor(true, Suite.set(this.projectionWidth).set(this.projectionHeight).set(this.shader));
+        this.projectionWidth = Var.create(projectionWidth);
+        this.projectionHeight = Var.create(projectionHeight);
+        this.projectionMonitor = Var.compose(true, Suite.set(this.projectionWidth).set(this.projectionHeight).set(this.shader));
 
         try {
             trueType = IOUtil.ioResourceToByteBuffer(fontPath, 512 * 1024);
@@ -173,7 +172,7 @@ public class TextGraphic {
         float s = (float)scale;
 
         shader.use();
-        if(projectionMonitor.detection()) {
+        if(projectionMonitor.release()) {
             shader.set("projection", new Matrix4f().ortho2D(0f, width, 0f, height));
         }
         glActiveTexture(GL_TEXTURE0);

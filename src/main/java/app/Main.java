@@ -9,7 +9,10 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
 import suite.suite.Subject;
 import suite.suite.Suite;
+import suite.suite.action.Action;
 import suite.suite.action.Impression;
+
+import java.util.function.Function;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL45.*;
@@ -28,35 +31,23 @@ public class Main {
     static boolean firstMouse = true;
     static float lastX, lastY;
 
-    static Var<Integer> windowWidth = new Var<>(800);
-    static Var<Integer> windowHeight = new Var<>(600);
+    static Var<Integer> windowWidth = Var.create(800);
+    static Var<Integer> windowHeight = Var.create(600);
 
     static Subject monitors = Suite.set();
 
-    public static Monitor setOn(Subject monitored) {
-        Monitor monitor = new Monitor(monitored);
-        monitors.set(monitor);
-        return monitor;
+    static Var<Object> triggersRoot = Var.create();
+
+    public static Fun setOn(Subject inputs, Subject outputs, Action action) {
+        return Fun.create(inputs, outputs.set(triggersRoot), action);
     }
 
-    public static Trigger setOn(Subject monitored, Impression impression) {
-        Trigger trigger = new Trigger(Trigger.INSTANT, monitored, impression);
-        monitors.set(trigger);
-        return trigger;
+    public static Fun setOn(Subject inputs, Impression impression) {
+        return Fun.create(inputs, Suite.set(triggersRoot), impression);
     }
 
-    public static boolean detection(Object key) {
-        var s = monitors.get(key);
-        if(s.settled())return s.asGiven(Monitor.class).detection();
-        return false;
-    }
-
-    public static void cancel(Object key) {
-        var s = monitors.get(key);
-        if(s.settled()) {
-            monitors.unset(s.key().direct());
-            s.asGiven(Monitor.class).abort();
-        }
+    public static<V> Fun setOn(Subject inputs, Var<V> output, Function<Subject, V> function) {
+        return Fun.create(inputs, Suite.set(0, output).set(triggersRoot), s -> Suite.set(0, function.apply(s)));
     }
 
     public static void main(String[] args) {
@@ -206,7 +197,7 @@ public class Main {
 //        shader.setTexture("texture1", 0, box);
 //        shader.setTexture("texture2", 1, face);
 
-        Var<String> str = new Var<>(Var.INITIAL_DETECTION, Suite.
+        Var<String> str = Var.compose(Suite.
                 set(keyboard.getKey(GLFW_KEY_UP).getPressed()).
                 set(keyboard.getKey(GLFW_KEY_LEFT).getPressed()).
                 set(keyboard.getKey(GLFW_KEY_DOWN).getPressed()).
@@ -220,27 +211,26 @@ public class Main {
                     return Suite.set(string);
                 });
 
-        Var<String> space = Var.build("_@/\"", Suite.set(Var.CURRENT_VALUE).set(keyboard.getKey(GLFW_KEY_SPACE).getState()),
+        Var<String> space = Var.compose("_@/\"", Suite.set(Var.OWN_VALUE).set(keyboard.getKey(GLFW_KEY_SPACE).getState()),
                 s -> Suite.set("." + s.asString()));
 
         Text text1 = Text.form(Suite.set("x", 30).set("y", 50).set("size", 50f).set("text", "text").set("r", 200).set("b", 200));
 
-        setOn(Suite.set(keyboard.getCharEvent()).set(text1.getContent().far()), s -> {
+        setOn(Suite.set(keyboard.getCharEvent()).set(text1.getContent().self()), text1.getContent(), s -> {
             KeyboardController.CharEvent e = s.asExpected();
-            Var<String> content = s.recent().asExpected();
-            content.set(new StringBuilder(content.get()).appendCodePoint(e.getCodepoint()).toString());
+            String content = Var.fetch(s.recent());
+            return new StringBuilder(content).appendCodePoint(e.getCodepoint()).toString();
         });
 
-        Trigger t1 = setOn(Suite.set(text1.getContent().far()).set(keyboard.getKey(GLFW_KEY_BACKSPACE)
-                .getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), s -> {
-            Var<String> var = s.asExpected();
-            String content = var.get();
-            if(content.length() > 0) var.set(content.substring(0, content.length() - 1));
+        Fun t1 = setOn(Suite.set(text1.getContent().self()).set(keyboard.getKey(GLFW_KEY_BACKSPACE).
+                getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), text1.getContent(), s -> {
+            String content = Var.fetch(s);
+            return content.length() > 0 ? content.substring(0, content.length() - 1) : "";
         });
 
-        setOn(Suite.set(t1).set(Trigger.SELF).set(keyboard.getKey(GLFW_KEY_ENTER).getState()), s -> {
-            cancel(s.direct());
-            cancel(s.get(Trigger.SELF).direct());
+        setOn(Suite.set(t1).set(Fun.SELF).set(keyboard.getKey(GLFW_KEY_ENTER).getState()), s -> {
+            s.asGiven(Fun.class).cancel();
+            s.get(Fun.SELF).asGiven(Fun.class).cancel();
         });
 
         while(!glfwWindowShouldClose(window))
@@ -276,6 +266,7 @@ public class Main {
             // -------------------------------------------------------------------------------
             glfwSwapBuffers(window);
             glfwPollEvents();
+            triggersRoot.get(); // Odpala zakolejkowane triggery
 
 //            glfwTerminate();
 //            return;

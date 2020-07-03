@@ -38,13 +38,11 @@ public class Text {
     Var<TextGraphic> graphicModel;
 
     public Text(String content, Vector2f position, double size, Vector3f color, TextGraphic graphicModel) {
-        this.content = new Var<>(content);
-        this.position = new Var<>(position);
-        this.size = new Var<>(size);
-        this.color = new Var<>(color);
-        this.graphicModel = new Var<>(graphicModel);
-
-        this.graphicModel.recipe(Suite.set(this.size), s -> Suite.set(TextGraphic.getForSize(s.asExpected())));
+        this.content = Var.create(content);
+        this.position = Var.create(position);
+        this.size = Var.create(size);
+        this.color = Var.create(color);
+        this.graphicModel = Var.compose(graphicModel, Suite.set(this.size), s -> Suite.set(TextGraphic.getForSize(s.asExpected())));
     }
 
     public void render() {

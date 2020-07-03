@@ -12,8 +12,8 @@ public class MouseController {
     }
 
     Subject buttons = Suite.thready();
-    Var<Vector2d> position = new Var<>();
-    Var<Vector2d> scroll = new Var<>();
+    Var<Vector2d> position = Var.create();
+    Var<Vector2d> scroll = Var.create();
 
     public void reportPositionEvent(long window, double posX, double posY) {
         position.set(new Vector2d(posX, posY));
