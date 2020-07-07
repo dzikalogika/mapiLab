@@ -1,6 +1,8 @@
 package app;
 
 import app.model.*;
+import app.model.input.Keyboard;
+import app.model.input.Mouse;
 import app.model.variable.*;
 import jorg.jorg.Jorg;
 import org.joml.Vector3f;
@@ -22,8 +24,8 @@ public class Main {
 
     static Camera camera = Camera.form(Jorg.withAdapter("speed", Camera.MOVEMENT_SPEED).parse("[pos]#1 [#speed]5,0 #[1]0,0]0,0]3,0"));
     static TextGraphic text;
-    static KeyboardController keyboard = new KeyboardController();
-    static MouseController mouse = new MouseController();
+    static Keyboard keyboard = new Keyboard();
+    static Mouse mouse = new Mouse();
 
     static float deltaTime = 0.0f;	// Time between current frame and last frame
     static float lastFrame = 0.0f; // Time of last frame
@@ -202,22 +204,19 @@ public class Main {
                 set(keyboard.getKey(GLFW_KEY_LEFT).getPressed()).
                 set(keyboard.getKey(GLFW_KEY_DOWN).getPressed()).
                 set(keyboard.getKey(GLFW_KEY_RIGHT).getPressed()),
-                s -> {
-                    String string = "" +
-                    (s.getAt(0).asGiven(Boolean.class) ? "^" : "_") +
+                s -> (s.getAt(0).asGiven(Boolean.class) ? "^" : "_") +
                     (s.getAt(1).asGiven(Boolean.class) ? "<" : "_") +
                     (s.getAt(2).asGiven(Boolean.class) ? "v" : "_") +
-                    (s.getAt(3).asGiven(Boolean.class) ? ">" : "_");
-                    return Suite.set(string);
-                });
+                    (s.getAt(3).asGiven(Boolean.class) ? ">" : "_"));
 
-        Var<String> space = Var.compose("_@/\"", Suite.set(Var.OWN_VALUE).set(keyboard.getKey(GLFW_KEY_SPACE).getState()),
-                s -> Suite.set("." + s.asString()));
+        Var<String> space = Var.compose("_@/\"", Suite.set(Var.OWN_VALUE).set(keyboard.getKey(GLFW_KEY_SPACE).getState().
+                        suppress((s1, s2) -> s2 == GLFW_RELEASE)),
+                s -> "." + s.asString());
 
         Text text1 = Text.form(Suite.set("x", 30).set("y", 50).set("size", 50f).set("text", "text").set("r", 200).set("b", 200));
 
         setOn(Suite.set(keyboard.getCharEvent()).set(text1.getContent().self()), text1.getContent(), s -> {
-            KeyboardController.CharEvent e = s.asExpected();
+            Keyboard.CharEvent e = s.asExpected();
             String content = Var.fetch(s.recent());
             return new StringBuilder(content).appendCodePoint(e.getCodepoint()).toString();
         });
@@ -231,6 +230,11 @@ public class Main {
         setOn(Suite.set(t1).set(Fun.SELF).set(keyboard.getKey(GLFW_KEY_ENTER).getState()), s -> {
             s.asGiven(Fun.class).cancel();
             s.get(Fun.SELF).asGiven(Fun.class).cancel();
+        });
+
+        Var<String> button = Var.compose("", Suite.set(mouse.getButton(GLFW_MOUSE_BUTTON_1).getState()), s -> {
+            Mouse.ButtonEvent e = s.asExpected();
+            return e.getPosition().toString() + "  " + e.getAction() + "   " + e.getModifiers();
         });
 
         while(!glfwWindowShouldClose(window))
@@ -259,7 +263,7 @@ public class Main {
 //            }
 
             text.render(str.get(), 30f, 300f, 1., new Vector3f(0.5f, 0.8f, 0.2f));
-            text.render(space.get(), 30f, 400f, 1., new Vector3f(0.5f, 0.8f, 0.2f));
+            text.render(button.get(), 30f, 400f, 1., new Vector3f(0.5f, 0.8f, 0.2f));
             text1.render();
 
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

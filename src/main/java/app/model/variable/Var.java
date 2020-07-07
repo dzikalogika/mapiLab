@@ -5,10 +5,14 @@ import suite.suite.Suite;
 import suite.suite.action.Action;
 
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 
 public class Var<T> {
 
-    public static final Object OWN_VALUE = new Object();
+    public static class Const {}
+
+    public static final Const OWN_VALUE = new Const();
+    public static final Const SELF = new Const();
 
     static void utilizeCollected(Subject collector) {
         for(var s : collector.front()) {
@@ -34,6 +38,7 @@ public class Var<T> {
         return new Var<>(value, instant, false);
     }
 
+    /* Dla Var jako monitor odpalany ręcznie przez Var::release */
     public static<V> Var<V> compose(boolean pressed, Subject components) {
         Var<V> composite = new Var<>(null, false, false);
         Fun fun = Fun.create(prepareComponents(components, composite), Suite.set(composite), s -> Suite.set());
@@ -41,34 +46,40 @@ public class Var<T> {
         return composite;
     }
 
-    public static<V> Var<V> compose(Subject components, Action recipe, Object resultKey) {
-        Var<V> composite = new Var<>(null, false, false);
-        Fun.create(prepareComponents(components, composite), Suite.set(resultKey, composite), recipe).press(true);
-        return composite;
-    }
-
-    public static<V> Var<V> compose(Subject components, Action recipe) {
-        return compose(components, s -> {
-            var result = recipe.play(s);
-            return result.settled() ? Suite.set(0, result.direct()) : Suite.set();
-        }, 0);
-    }
-
-    public static<V> Var<V> compose(V value, Subject components, Action recipe, Object resultKey) {
+    public static<V> Var<V> compose(V value, Subject components, Object resultKey, Action recipe) {
         Var<V> composite = new Var<>(value, false, false);
         Fun.create(prepareComponents(components, composite), Suite.set(resultKey, composite), recipe);
         return composite;
     }
 
-    public static<V> Var<V> compose(V value, Subject components, Action recipe) {
-        return compose(value, components, s -> {
-            var result = recipe.play(s);
-            return result.settled() ? Suite.set(0, result.direct()) : Suite.set();
-        }, 0);
+    public static<V> Var<V> compose(Subject components, Object resultKey, Action recipe) {
+        Var<V> composite = new Var<>(null, false, false);
+        Fun.create(prepareComponents(components, composite), Suite.set(resultKey, composite), recipe).press(true);
+        return composite;
     }
 
-    static Subject prepareComponents(Subject components, Var<?> var) {
-        return components.front().advance(s -> s.direct() == OWN_VALUE ? Suite.set(s.key().direct(), var) : s).toSubject();
+
+    public static<V> Var<V> compose(V value, Subject components, Function<Subject, V> recipe) {
+        Var<V> composite = new Var<>(value, false, false);
+        Fun.create(prepareComponents(components, composite), Suite.set(OWN_VALUE, composite), s -> Suite.set(OWN_VALUE, recipe.apply(s)));
+        return composite;
+    }
+
+    public static<V> Var<V> compose(Subject components, Function<Subject, V> recipe) {
+        Var<V> composite = new Var<>(null, false, false);
+        Fun.create(prepareComponents(components, composite), Suite.set(OWN_VALUE, composite),
+                s -> Suite.set(OWN_VALUE, recipe.apply(s))).press(true);
+        return composite;
+    }
+
+    static Subject prepareComponents(Subject components, Var<?> self) {
+        return components.front().advance(s -> {
+            if(s.direct() == OWN_VALUE)
+                return Suite.set(s.key().direct(), self);
+            else if(s.direct() == SELF)
+                return Suite.set(s.key().direct(), new Var<>(self, true, true));
+            else return s;
+        }).toSubject();
     }
 
     public static<V> V fetch(Subject s) {
@@ -76,33 +87,9 @@ public class Var<T> {
         return v.get();
     }
 
-    public static void main(String[] args) {
-        Var<Integer> a = Var.create(1, false);
-        Var<Integer> b = a.suppressEquality();
-        Var<Integer> c = Var.create(5, true);
-        Fun assign = Fun.assign(b, c);
-        System.out.println(c.get());
-        System.out.println("before set 2");
-        a.set(2);
-        System.out.println("after set 2");
-        System.out.println(c.get());
-        System.out.println("before set 2");
-        c.set(3);
-        a.set(2);
-        System.out.println("after set 2");
-        System.out.println(c.get());
-        a.set(5);
-        System.out.println(c.get());
-        c.detach();
-        System.out.println();
-    }
-
-    class NoVar {
-        Var<T> var;
-
-        public NoVar(Var<T> var) {
-            this.var = var;
-        }
+    public static<V> V fetch(Subject s, Class<V> type) {
+        Var<V> v = s.asExpected();
+        return v.get();
     }
 
     T value;

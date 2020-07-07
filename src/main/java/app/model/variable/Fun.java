@@ -18,21 +18,21 @@ public class Fun {
     }
 
     public static<T, T1 extends T> Fun assign(Var<T1> source, Var<T> target) {
-        return new Fun(Suite.set(source), Suite.set(0, target), s -> Suite.set(0, s.direct()));
+        return new Fun(Suite.set(source), Suite.set(Var.OWN_VALUE, target), s -> Suite.set(Var.OWN_VALUE, s.direct()));
     }
 
     public static<T, T1 extends T> Fun suppress(Var<T1> source, Var<T> target, BiPredicate<T1, T> suppressor) {
-        return new Fun(Suite.set(0, source).set(target), Suite.set(0, target),
+        return new Fun(Suite.set(Var.OWN_VALUE, source).set(target), Suite.set(Var.OWN_VALUE, target),
                 s -> suppressor.test(s.recent().asExpected(), s.asExpected()) ? Suite.set() : s);
     }
 
     public static<T, T1 extends T> Fun suppressIdentity(Var<T1> source, Var<T> target) {
-        return new Fun(Suite.set(0, source).set(target), Suite.set(0, target),
+        return new Fun(Suite.set(Var.OWN_VALUE, source).set(target), Suite.set(Var.OWN_VALUE, target),
                 s -> s.direct() == s.recent().direct() ? Suite.set() : s);
     }
 
     public static<T, T1 extends T> Fun suppressEquality(Var<T1> source, Var<T> target) {
-        return new Fun(Suite.set(0, source).set(target), Suite.set(0, target),
+        return new Fun(Suite.set(Var.OWN_VALUE, source).set(target), Suite.set(Var.OWN_VALUE, target),
                 s -> Objects.equals(s.direct(), s.recent().direct()) ? Suite.set() : s);
     }
 

@@ -42,7 +42,7 @@ public class Text {
         this.position = Var.create(position);
         this.size = Var.create(size);
         this.color = Var.create(color);
-        this.graphicModel = Var.compose(graphicModel, Suite.set(this.size), s -> Suite.set(TextGraphic.getForSize(s.asExpected())));
+        this.graphicModel = Var.compose(graphicModel, Suite.set(this.size), s -> TextGraphic.getForSize(s.asExpected()));
     }
 
     public void render() {

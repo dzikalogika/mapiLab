@@ -1,21 +1,21 @@
-package app.model;
+package app.model.input;
 
 import app.model.variable.Var;
 import org.lwjgl.glfw.GLFW;
 import suite.suite.Subject;
 import suite.suite.Suite;
 
-public class KeyboardController {
+public class Keyboard {
 
     public static class Key {
         Var<Integer> state = Var.create(GLFW.GLFW_RELEASE);
-        Var<Boolean> pressed = Var.compose(false, Suite.set(state).set(Var.OWN_VALUE), s -> {
+        Var<Boolean> pressed = Var.compose(false, Suite.set(state).set(Var.OWN_VALUE), Var.OWN_VALUE, s -> {
             int state = s.asInt();
             boolean pressedSoFar = s.recent().asExpected();
             if(pressedSoFar) {
-                return state == GLFW.GLFW_RELEASE ? Suite.set(false) : Suite.set();
+                return state == GLFW.GLFW_RELEASE ? Suite.set(Var.OWN_VALUE, false) : Suite.set();
             } else {
-                return state == GLFW.GLFW_RELEASE ? Suite.set() : Suite.set(true);
+                return state == GLFW.GLFW_RELEASE ? Suite.set() : Suite.set(Var.OWN_VALUE, true);
             }
         });
 
