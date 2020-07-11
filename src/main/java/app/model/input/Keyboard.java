@@ -9,7 +9,7 @@ public class Keyboard {
 
     public static class Key {
         Var<Integer> state = Var.create(GLFW.GLFW_RELEASE);
-        Var<Boolean> pressed = Var.compose(false, Suite.set(state).set(Var.OWN_VALUE), Var.OWN_VALUE, s -> {
+        Var<Boolean> pressed = Var.compose(false, Suite.set(state).set(Var.OWN_VALUE), s -> {
             int state = s.asInt();
             boolean pressedSoFar = s.recent().asExpected();
             if(pressedSoFar) {
@@ -17,7 +17,7 @@ public class Keyboard {
             } else {
                 return state == GLFW.GLFW_RELEASE ? Suite.set() : Suite.set(Var.OWN_VALUE, true);
             }
-        });
+        }, Var.OWN_VALUE);
 
         public Var<Integer> getState() {
             return state;

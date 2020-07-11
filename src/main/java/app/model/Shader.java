@@ -16,8 +16,6 @@ public class Shader extends GLObject implements Reformable {
         return new Shader(vertex, fragment);
     }
 
-    private Subject textures = Suite.set();
-
     public Shader(String vertex, String fragment) {
         super(glCreateProgram());
 
@@ -67,7 +65,7 @@ public class Shader extends GLObject implements Reformable {
 
     public void setTexture(String name, int index, Texture texture) {
         use();
-        set("texture1", index);
+        set(name, index);
         glActiveTexture(GL_TEXTURE0 + index);
         glBindTexture(GL_TEXTURE_2D, texture.getGlid());
     }

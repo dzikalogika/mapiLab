@@ -38,21 +38,19 @@ public class Var<T> {
         return new Var<>(value, instant, false);
     }
 
-    /* Dla Var jako monitor odpalany ręcznie przez Var::release */
+    /* Dla Var jako monitor; test detekcji przez Var::release */
     public static<V> Var<V> compose(boolean pressed, Subject components) {
-        Var<V> composite = new Var<>(null, false, false);
-        Fun fun = Fun.create(prepareComponents(components, composite), Suite.set(composite), s -> Suite.set());
-        if(pressed)fun.press(true);
-        return composite;
+        return pressed ? compose(components, s -> Suite.set(Var.OWN_VALUE, null), Var.OWN_VALUE) :
+                compose(null, components, s -> Suite.set(Var.OWN_VALUE, null), Var.OWN_VALUE);
     }
 
-    public static<V> Var<V> compose(V value, Subject components, Object resultKey, Action recipe) {
+    public static<V> Var<V> compose(V value, Subject components, Action recipe, Object resultKey) {
         Var<V> composite = new Var<>(value, false, false);
         Fun.create(prepareComponents(components, composite), Suite.set(resultKey, composite), recipe);
         return composite;
     }
 
-    public static<V> Var<V> compose(Subject components, Object resultKey, Action recipe) {
+    public static<V> Var<V> compose(Subject components, Action recipe, Object resultKey) {
         Var<V> composite = new Var<>(null, false, false);
         Fun.create(prepareComponents(components, composite), Suite.set(resultKey, composite), recipe).press(true);
         return composite;
@@ -116,7 +114,7 @@ public class Var<T> {
     }
 
     T get(Fun fun) {
-        if(detections != null)detections.unset(fun);
+        if(detections != null)detections.unset(fun); // Unikaj zapętleń
         return get();
     }
 
@@ -126,8 +124,8 @@ public class Var<T> {
     }
 
     void set(T value, Fun fun) {
-        if(detections != null)detections.unset(fun);
         this.value = value;
+        if(detections != null) detections.unset(fun);
         outputs.front().keys().filter(Fun.class).filter(f -> f != fun).forEach(f -> f.press(true));
     }
 

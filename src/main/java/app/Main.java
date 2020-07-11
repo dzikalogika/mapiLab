@@ -5,6 +5,8 @@ import app.model.input.Keyboard;
 import app.model.input.Mouse;
 import app.model.variable.*;
 import jorg.jorg.Jorg;
+import org.joml.Matrix4f;
+import org.joml.Vector2d;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
@@ -49,7 +51,7 @@ public class Main {
     }
 
     public static<V> Fun setOn(Subject inputs, Var<V> output, Function<Subject, V> function) {
-        return Fun.create(inputs, Suite.set(0, output).set(triggersRoot), s -> Suite.set(0, function.apply(s)));
+        return Fun.create(inputs, Suite.set(Var.OWN_VALUE, output).set(triggersRoot), s -> Suite.set(Var.OWN_VALUE, function.apply(s)));
     }
 
     public static void main(String[] args) {
@@ -170,7 +172,6 @@ public class Main {
             new Vector3f( 1.5f,  0.2f, -1.5f),
             new Vector3f(-1.3f,  1.0f, -1.5f)
         };
-//        int[] indices = Jorg.read("indices");
 //        Shader shader = Jorg.withRecipe(Shader::form).read("shader");
 //
 //        int vbo = glGenBuffers();
@@ -237,6 +238,14 @@ public class Main {
             return e.getPosition().toString() + "  " + e.getAction() + "   " + e.getModifiers();
         });
 
+        Rectangle rect = Rectangle.form(Suite.set("x", 0.25).set("y", 0.25).set("w", 0.5).set("h", 0.5));
+
+        setOn(Suite.set(keyboard.getKey(GLFW_KEY_SPACE).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), Suite.set("r", rect.getOutfit().get().getRed()).
+                set("g", rect.getOutfit().get().getGreen()).
+                set("b", rect.getOutfit().get().getBlue()), s -> {
+           return Suite.set("r", (float)Math.random()).set("g", (float)Math.random()).set("b", (float)Math.random());
+        });
+
         while(!glfwWindowShouldClose(window))
         {
             float currentFrame = (float)glfwGetTime();
@@ -265,6 +274,7 @@ public class Main {
             text.render(str.get(), 30f, 300f, 1., new Vector3f(0.5f, 0.8f, 0.2f));
             text.render(button.get(), 30f, 400f, 1., new Vector3f(0.5f, 0.8f, 0.2f));
             text1.render();
+            rect.print();
 
             // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
             // -------------------------------------------------------------------------------
