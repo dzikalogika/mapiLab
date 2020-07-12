@@ -10,29 +10,33 @@ public class Rectangle {
     private Var<Vector2d> position;
     private Var<Double> width;
     private Var<Double> height;
-    private Var<ColorOutfit> outfit;
-    private Var<Shader> shader;
+    private Var<Outfit> outfit;
 
     private Var<Object> vertexMonitor;
 
 
     public static Rectangle form(Subject sub) {
-        double x = Suite.from(sub).get("x", Number.class, Number::doubleValue).asExpected();
-        double y = Suite.from(sub).get("y", Number.class, Number::doubleValue).asExpected();
-        double w = Suite.from(sub).get("w", Number.class, Number::doubleValue).asExpected();
-        double h = Suite.from(sub).get("h", Number.class, Number::doubleValue).asExpected();
-        return new Rectangle(x, y, w, h, new ColorOutfit(0f, 1f, 1f, 0.5f));
+        Var<Vector2d> position = Var.ofObjectFrom(sub, "position", Vector2d.class).orGiven(null);
+        if(position == null) {
+            Var<Double> x = Var.ofDoubleFrom(sub, "x").asExpected();
+            Var<Double> y = Var.ofDoubleFrom(sub, "y").asExpected();
+            position = Var.compose(Suite.set(x).set(y), s -> new Vector2d(s.asGiven(Double.class), s.recent().asExpected()));
+        }
+        Var<Double> w = Var.ofDoubleFrom(sub, "w").asExpected();
+        Var<Double> h = Var.ofDoubleFrom(sub, "h").asExpected();
+        Var<Outfit> outfit = Var.ofObjectFrom(sub, "outfit", Outfit.class).
+                orDo(s -> Var.create(Outfit.form(s)));
+        return new Rectangle(position, w, h, outfit);
     }
 
-    public Rectangle(double positionX, double positionY, double width, double height, ColorOutfit outfit) {
-        this.position = Var.create(new Vector2d(positionX, positionY));
-        this.width = Var.create(width);
-        this.height = Var.create(height);
-        this.outfit = Var.create(outfit);
+    public Rectangle(Var<Vector2d> position, Var<Double> width, Var<Double> height, Var<Outfit> outfit) {
+        this.position = position;
+        this.width = width;
+        this.height = height;
+        this.outfit = outfit;
 
-        outfit.updateIndices(new int[]{0, 2, 1, 0, 3, 2});
-        vertexMonitor = Var.compose(Suite.set(position).set(this.width).set(this.height).set(outfit.getVertexMonitor()), s -> {
-            System.out.println("yo");
+        outfit.get().updateIndices(new int[]{0, 2, 1, 0, 3, 2});
+        vertexMonitor = Var.compose(Suite.set(position).set(this.width).set(this.height).set(outfit.get().getVertexMonitor()), s -> {
             float[] v = new float[4 * 7];
             this.outfit.get().updateVertex(getVertex(v, 0, 7));
             return Suite.set();
@@ -51,7 +55,7 @@ public class Rectangle {
         return height;
     }
 
-    public Var<ColorOutfit> getOutfit() {
+    public Var<Outfit> getOutfit() {
         return outfit;
     }
 

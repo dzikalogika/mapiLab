@@ -1,16 +1,13 @@
 package app.model;
 
-import app.model.variable.Fun;
 import app.model.variable.Var;
 import jorg.jorg.Jorg;
-import org.lwjgl.glfw.GLFW;
 import suite.suite.Suite;
 
-import java.util.Arrays;
 
 import static org.lwjgl.opengl.GL30.*;
 
-public class ColorOutfit extends GLObject {
+public class ColorOutfit extends GLObject implements Outfit {
 
     public static final Shader shader = Jorg.withRecipe(Shader::form).read(Shader.class.getClassLoader().getResourceAsStream("jorg/colorShader.jorg"));
 
@@ -23,11 +20,15 @@ public class ColorOutfit extends GLObject {
     private final int indicesGlid;
 
     public ColorOutfit(float red, float green, float blue, float alpha) {
+        this(Var.create(red), Var.create(green), Var.create(blue), Var.create(alpha));
+    }
+
+    public ColorOutfit(Var<Float> red, Var<Float> green, Var<Float> blue, Var<Float> alpha) {
         super(glGenVertexArrays());
-        this.red = Var.create(red);
-        this.green = Var.create(green);
-        this.blue = Var.create(blue);
-        this.alpha = Var.create(alpha);
+        this.red = red;
+        this.green = green;
+        this.blue = blue;
+        this.alpha = alpha;
 
         vertexGlid = glGenBuffers();
         indicesGlid = glGenBuffers();
@@ -70,6 +71,7 @@ public class ColorOutfit extends GLObject {
         glBufferData(GL_ARRAY_BUFFER, vertex, GL_STATIC_DRAW);
     }
 
+    @Override
     public void updateIndices(int[] indices) {
         indicesLength = indices.length;
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesGlid);

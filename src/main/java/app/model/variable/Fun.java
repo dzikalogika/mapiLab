@@ -4,6 +4,7 @@ import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.action.Action;
 
+import java.lang.ref.WeakReference;
 import java.util.Objects;
 import java.util.function.BiPredicate;
 
@@ -13,7 +14,7 @@ public class Fun {
 
     public static final Const SELF = new Const();
 
-    public static Fun create(Subject inputs, Subject outputs, Action transition) {
+    public static Fun compose(Subject inputs, Subject outputs, Action transition) {
         return new Fun(inputs, outputs, transition);
     }
 
@@ -47,16 +48,22 @@ public class Fun {
             if(s.assigned(Var.class)) {
                 v = s.asExpected();
             } else if(s.direct() == SELF) {
-                v = new Var<>(this, false, true);
+                v = new Var<>(this, false);
             } else {
-                v = new Var<>(s.direct(), false, true);
+                v = new Var<>(s.direct(), true);
             }
             v.attachOutput(this);
             return Suite.set(s.key().direct(), v);
         }).toSubject();
-        this.outputs = outputs;
+        this.outputs = outputs.front().advance(s -> {
+            if(s.assigned(Var.class)) {
+                Var<?> v = s.asExpected();
+                v.attachInput(this);
+                return Suite.set(s.key().direct(), new WeakReference<>(v));
+            }
+            return Suite.set();
+        }).toSubject();
         this.transition = transition;
-        this.outputs.front().values().filter(Var.class).forEach(v -> v.attachInput(this));
     }
 
     public void evaluate() {
@@ -65,85 +72,66 @@ public class Fun {
             detection = false;
             Subject outputParams = transition.play(inputParams);
             outputParams.front().forEach(s -> {
-                var output = outputs.get(s.key().direct());
+                var key = s.key().direct();
+                var output = outputs.get(key);
                 if (output.settled()) {
-                    Var<?> v = output.asExpected();
-                    v.set(s.asExpected(), this);
+                    WeakReference<Var<?>> ref = output.asExpected();
+                    Var<?> v = ref.get();
+                    if(v == null) {
+                        outputs.unset(key);
+                    } else {
+                        v.set(s.asExpected(), this);
+                    }
                 }
             });
         }
     }
 
     public boolean press(boolean direct) {
-        if(utilized())throw new RuntimeException("Press on utilized Fun");
         if(detection) return false;
         if(direct)detection = true;
-        for(var v : outputs.front().values().filter(Var.class)) {
-            if(v.press(this))return true;
+        for(var s : outputs.front()) {
+            WeakReference<Var<?>> ref = s.asExpected();
+            Var<?> var = ref.get();
+            if(var != null && var.press(this)) return true;
         }
         return false;
     }
 
-    public void cancel() {
-        if(utilized())return;
-        Subject collector = Suite.set(this);
-        outputs.front().keys().filter(Var.class).forEach(v -> v.collectTransient(collector));
-        inputs.front().keys().filter(Var.class).forEach(v -> v.collectTransient(collector));
-        Var.utilizeCollected(collector);
+    public void detach() {
+        inputs.front().keys().forEach(this::detachInput);
+        inputs = Suite.set();
+        outputs = Suite.set();
     }
 
-    public void detachOutput(Var<?> output) {
-        if(utilized())return;
-        silentDetachOutput(output);
-        Subject collector = Suite.set();
-        collectTransient(collector);
-        output.collectTransient(collector);
-        Var.utilizeCollected(collector);
+    public void detachOutput(Object key) {
+        outputs.unset(key);
     }
 
-    public void detachInput(Var<?> input) {
-        if(utilized())return;
-        for (var s : inputs.front()){
-            if(s.direct().equals(input)) {
-                cancel();
-                return;
-            }
-        }
-    }
-
-    boolean collectTransient(Subject collector) {
-        if(utilized())return true;
-        if(collector.get(this).settled())return true;
-        collector.set(this);
-        boolean collect = outputs.front().keys().filter(Var.class).allTrue(f -> f.collectTransient(collector));
-        if(collect) inputs.front().keys().filter(Var.class).forEach(f -> f.collectTransient(collector));
-        else collector.unset(this);
-        return collect;
-    }
-
-    void silentDetachOutput(Var<?> output) {
-        if(utilized())return;
+    public void detachOutputVar(Var<?> output) {
         for (var s : outputs.front()){
-            if(s.direct().equals(output)) {
+            WeakReference<Var<?>> ref = s.asExpected();
+            Var<?> var = ref.get();
+            if(var == null || var.equals(output)) {
                 outputs.unset(s.key().direct());
             }
         }
     }
 
-    void utilize(Subject collector) {
-        if(utilized())return;
-        for(Var<?> v : inputs.front().values().filter(Var.class).filter(v -> collector.get(v).desolated())) {
-            v.silentDetachOutput(this);
+    public void detachInput(Object key) {
+        var s = inputs.get(key);
+        if(s.settled()) {
+            inputs.unset(key);
+            Var<?> var = s.asExpected();
+            var.detachOutput(this);
         }
-        for(Var<?> v : outputs.front().values().filter(Var.class).filter(v -> collector.get(v).desolated())) {
-            v.silentDetachInput(this);
-        }
-        inputs = null;
-        outputs = null;
-        transition = null;
     }
 
-    public boolean utilized() {
-        return inputs == null;
+    public void detachInputVar(Var<?> input) {
+        for (var s : inputs.front()){
+            if(s.direct().equals(input)) {
+                detachInput(s.key().direct());
+            }
+        }
     }
 }
