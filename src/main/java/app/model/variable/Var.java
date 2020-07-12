@@ -6,11 +6,16 @@ import suite.suite.Suite;
 import suite.suite.action.Action;
 
 import java.lang.ref.WeakReference;
-import java.util.WeakHashMap;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 
-public class Var<T> {
+public class Var<T> extends AbstractVar<T> {
+    /**
+     * Leniwa implementacja (instant = false) czeka z wywołaniem funkcji do czasu użycia get().
+     * Stan zmiennych położonych wyżej jest zawsze brany ostatni przed użyciem get(), a funkcje wywoływane tylko raz.
+     *
+     * Jeśli każdy stan zmiennych wyższych ma zostać zarejestrowany, należy użyć implementacji instant = true.
+     */
 
     public static class Const {}
 
@@ -64,21 +69,11 @@ public class Var<T> {
     static Subject prepareComponents(Subject components, Var<?> self) {
         return components.front().advance(s -> {
             if(s.direct() == OWN_VALUE)
-                return Suite.set(s.key().direct(), self);
+                return Suite.set(s.key().direct(), self.weak());
             else if(s.direct() == SELF)
-                return Suite.set(s.key().direct(), new Var<>(self, true));
+                return Suite.set(s.key().direct(), new Constant<>(self));
             else return s;
         }).toSubject();
-    }
-
-    public static<V> V fetch(Subject s) {
-        Var<V> v = s.asExpected();
-        return v.get();
-    }
-
-    public static<V> V fetch(Subject s, Class<V> type) {
-        Var<V> v = s.asExpected();
-        return v.get();
     }
 
     public static Query ofDoubleFrom(Subject s, Object key) {
@@ -119,6 +114,14 @@ public class Var<T> {
         c.detach();
         a.set(1);
         System.out.println(c.get());
+        Var<Integer> d = Var.create();
+        Fun.compose(Suite.set(b), Suite.set(0, c).set(1, d), s -> {
+            System.out.println("run fun");
+            int val = s.asInt();
+            return Suite.set(0, val + 1).set(1, val + 2);
+        }).press(true);
+        System.out.println(c.get());
+        System.out.println(d.get());
     }
 
     T value;
@@ -136,14 +139,13 @@ public class Var<T> {
             if (detections.settled()) {
                 Subject d = detections;
                 detections = Suite.set();
-                d.front().keys().filter(Fun.class).forEach(Fun::evaluate);
+                d.front().values().filter(Fun.class).forEach(Fun::execute);
             }
         }
         return value;
     }
 
     T get(Fun fun) {
-        if(detections != null)detections.unset(fun); // Unikaj zapętleń
         return get();
     }
 
@@ -152,9 +154,7 @@ public class Var<T> {
         for(var s : outputs.front()) {
             WeakReference<Fun> ref = s.asExpected();
             Fun fun = ref.get();
-            if(fun == null) {
-                outputs.unset(ref);
-            } else {
+            if(fun != null) {
                 fun.press(true);
             }
         }
@@ -162,15 +162,31 @@ public class Var<T> {
 
     void set(T value, Fun fun) {
         this.value = value;
-        if(detections != null) detections.unset(fun);
+        if(detections != null)detections.unset(fun); // Jeśli wywołana w gałęzi równoległej, oznacz jako wykonana.
         for(var s : outputs.front()) {
             WeakReference<Fun> ref = s.asExpected();
             Fun f = ref.get();
-            if(f == null) {
-                outputs.unset(ref);
-            } else if(f != fun){
+            if(f != null &&f != fun) {
                 f.press(true);
             }
+        }
+    }
+
+    boolean press(Fun fun) {
+        if(detections == null) {
+            fun.execute();
+            return true;
+        } else {
+            boolean pressOutputs = detections.desolated();
+            detections.put(fun);
+            if(pressOutputs) {
+                for(var s : outputs.front()) {
+                    WeakReference<Fun> ref = s.asExpected();
+                    Fun f = ref.get();
+                    if(f != null && f != fun && f.press(false)) return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -211,22 +227,15 @@ public class Var<T> {
         detachInputs();
     }
 
-    boolean press(Fun fun) {
-        if(detections == null) {
-            fun.evaluate();
-            return true;
-        } else {
-            boolean trigger = detections.desolated();
-            detections.set(fun);
-            if(trigger) {
-                for(var s : outputs.front()) {
-                    WeakReference<Fun> ref = s.asExpected();
-                    Fun f = ref.get();
-                    if(f != null && f != fun && f.press(true)) return true;
-                }
-            }
-            return false;
+    boolean cycleTest(Fun fun) {
+        for(var s : outputs.front()) {
+            WeakReference<Fun> ref = s.asExpected();
+            Fun f = ref.get();
+            if(f == null){
+                outputs.unset(s.key().direct());
+            } else if(f == fun || f.cycleTest(fun)) return true;
         }
+        return false;
     }
 
     public boolean release() {
@@ -264,8 +273,8 @@ public class Var<T> {
         return this;
     }
 
-    public Var<Var<T>> self() {
-        return new Var<>(this, true);
+    public WeakVar<T> weak() {
+        return new WeakVar<>(this);
     }
 
 }

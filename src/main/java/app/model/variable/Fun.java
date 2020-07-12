@@ -23,17 +23,17 @@ public class Fun {
     }
 
     public static<T, T1 extends T> Fun suppress(Var<T1> source, Var<T> target, BiPredicate<T1, T> suppressor) {
-        return new Fun(Suite.set(Var.OWN_VALUE, source).set(target), Suite.set(Var.OWN_VALUE, target),
+        return new Fun(Suite.set(Var.OWN_VALUE, source).set(target.weak()), Suite.set(Var.OWN_VALUE, target),
                 s -> suppressor.test(s.recent().asExpected(), s.asExpected()) ? Suite.set() : s);
     }
 
     public static<T, T1 extends T> Fun suppressIdentity(Var<T1> source, Var<T> target) {
-        return new Fun(Suite.set(Var.OWN_VALUE, source).set(target), Suite.set(Var.OWN_VALUE, target),
+        return new Fun(Suite.set(Var.OWN_VALUE, source).set(target.weak()), Suite.set(Var.OWN_VALUE, target),
                 s -> s.direct() == s.recent().direct() ? Suite.set() : s);
     }
 
     public static<T, T1 extends T> Fun suppressEquality(Var<T1> source, Var<T> target) {
-        return new Fun(Suite.set(Var.OWN_VALUE, source).set(target), Suite.set(Var.OWN_VALUE, target),
+        return new Fun(Suite.set(Var.OWN_VALUE, source).set(target.weak()), Suite.set(Var.OWN_VALUE, target),
                 s -> Objects.equals(s.direct(), s.recent().direct()) ? Suite.set() : s);
     }
 
@@ -44,30 +44,31 @@ public class Fun {
 
     public Fun(Subject inputs, Subject outputs, Action transition) {
         this.inputs = inputs.front().advance(s -> {
-            Var<?> v;
-            if(s.assigned(Var.class)) {
+            AbstractVar<?> v;
+            if(s.assigned(AbstractVar.class)) {
                 v = s.asExpected();
             } else if(s.direct() == SELF) {
-                v = new Var<>(this, false);
+                v = new Constant<>(this);
             } else {
-                v = new Var<>(s.direct(), true);
+                v = new Constant<>(s.direct());
             }
             v.attachOutput(this);
             return Suite.set(s.key().direct(), v);
         }).toSubject();
-        this.outputs = outputs.front().advance(s -> {
+        this.outputs = Suite.set();
+        for(var s : outputs.front()) {
             if(s.assigned(Var.class)) {
                 Var<?> v = s.asExpected();
+                if(v.cycleTest(this)) throw new RuntimeException("Cycle test failed");
                 v.attachInput(this);
-                return Suite.set(s.key().direct(), new WeakReference<>(v));
+                this.outputs.set(s.key().direct(), new WeakReference<>(v));
             }
-            return Suite.set();
-        }).toSubject();
+        }
         this.transition = transition;
     }
 
-    public void evaluate() {
-        Subject inputParams = inputs.front().advance(s -> Suite.set(s.key().direct(), s.asGiven(Var.class).get(this))).toSubject();
+    public void execute() {
+        Subject inputParams = inputs.front().advance(s -> Suite.set(s.key().direct(), s.asGiven(AbstractVar.class).get(this))).toSubject();
         if(detection) {
             detection = false;
             Subject outputParams = transition.play(inputParams);
@@ -122,7 +123,7 @@ public class Fun {
         var s = inputs.get(key);
         if(s.settled()) {
             inputs.unset(key);
-            Var<?> var = s.asExpected();
+            AbstractVar<?> var = s.asExpected();
             var.detachOutput(this);
         }
     }
@@ -133,5 +134,16 @@ public class Fun {
                 detachInput(s.key().direct());
             }
         }
+    }
+
+    boolean cycleTest(Fun fun) {
+        for(var s : outputs.front()) {
+            WeakReference<Var<?>> ref = s.asExpected();
+            Var<?> v = ref.get();
+            if(v == null){
+                outputs.unset(s.key().direct());
+            } else if(v.cycleTest(fun)) return true;
+        }
+        return false;
     }
 }
