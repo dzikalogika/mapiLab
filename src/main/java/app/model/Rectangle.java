@@ -1,5 +1,6 @@
 package app.model;
 
+import app.model.variable.Monitor;
 import app.model.variable.Var;
 import org.joml.Vector2d;
 import suite.suite.Subject;
@@ -7,12 +8,12 @@ import suite.suite.Suite;
 
 public class Rectangle {
 
-    private Var<Vector2d> position;
-    private Var<Double> width;
-    private Var<Double> height;
-    private Var<Outfit> outfit;
+    private final Var<Vector2d> position;
+    private final Var<Double> width;
+    private final Var<Double> height;
+    private final Var<Outfit> outfit;
 
-    private Var<Object> vertexMonitor;
+    private final Monitor vertexMonitor;
 
 
     public static Rectangle form(Subject sub) {
@@ -36,11 +37,8 @@ public class Rectangle {
         this.outfit = outfit;
 
         outfit.get().updateIndices(new int[]{0, 2, 1, 0, 3, 2});
-        vertexMonitor = Var.compose(Suite.set(position).set(this.width).set(this.height).set(outfit.get().getVertexMonitor()), s -> {
-            float[] v = new float[4 * 7];
-            this.outfit.get().updateVertex(getVertex(v, 0, 7));
-            return Suite.set();
-        });
+        vertexMonitor = Monitor.compose(true, Suite.set(position).set(this.width).set(this.height).
+                set(outfit.get().getVertexMonitor()));
     }
 
     public Var<Vector2d> getPosition() {
@@ -60,7 +58,10 @@ public class Rectangle {
     }
 
     public void print() {
-        vertexMonitor.get();
+        if(vertexMonitor.release()) {
+            float[] v = new float[4 * 7];
+            outfit.get().updateVertex(getVertex(v, 0, 7));
+        }
         outfit.get().print();
     }
 

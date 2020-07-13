@@ -1,12 +1,13 @@
 package app.model;
 
+import app.model.variable.Monitor;
 import app.model.variable.Var;
 import suite.suite.Subject;
 
 public interface Outfit {
     void updateVertex(float[] vertex);
     void updateIndices(int[] indices);
-    Var<Object> getVertexMonitor();
+    Monitor getVertexMonitor();
     void print();
 
     static Outfit form(Subject sub) {

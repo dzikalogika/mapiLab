@@ -1,5 +1,6 @@
 package app.model.variable;
 
+import jorg.processor.ProcessorException;
 import suite.suite.Query;
 import suite.suite.Subject;
 import suite.suite.Suite;
@@ -34,12 +35,6 @@ public class Var<T> extends AbstractVar<T> {
         return new Var<>(value, instant);
     }
 
-    /* Dla Var jako monitor; test detekcji przez Var::release */
-    public static<V> Var<V> compose(boolean pressed, Subject components) {
-        return pressed ? compose(components, s -> Suite.set(Var.OWN_VALUE, null), Var.OWN_VALUE) :
-                compose(null, components, s -> Suite.set(Var.OWN_VALUE, null), Var.OWN_VALUE);
-    }
-
     public static<V> Var<V> compose(V value, Subject components, Action recipe, Object resultKey) {
         Var<V> composite = new Var<>(value, false);
         Fun.compose(prepareComponents(components, composite), Suite.set(resultKey, composite), recipe);
@@ -63,6 +58,16 @@ public class Var<T> extends AbstractVar<T> {
         Var<V> composite = new Var<>(null, false);
         Fun.compose(prepareComponents(components, composite), Suite.set(OWN_VALUE, composite),
                 s -> Suite.set(OWN_VALUE, recipe.apply(s))).press(true);
+        return composite;
+    }
+
+    public static<V> Var<V> compose(Subject components, String expression) {
+        Var<V> composite = new Var<>(null, false);
+        try {
+            Fun.express(prepareComponents(components, composite).set("#0", composite), "#0=" + expression).press(true);
+        } catch (ProcessorException e) {
+            throw new RuntimeException(e);
+        }
         return composite;
     }
 
@@ -122,10 +127,15 @@ public class Var<T> extends AbstractVar<T> {
         }).press(true);
         System.out.println(c.get());
         System.out.println(d.get());
+
+        Var<Integer> e = Var.compose(Suite.set("c", c).set("d", d), "(c + d) * 20");
+        System.out.println(e.get());
+        a.set(2);
+        System.out.println(e.get());
     }
 
     T value;
-    Subject inputs = Suite.set();
+    public Subject inputs = Suite.set();
     Subject outputs = Suite.set();
     Subject detections;
 
@@ -236,14 +246,6 @@ public class Var<T> extends AbstractVar<T> {
             } else if(f == fun || f.cycleTest(fun)) return true;
         }
         return false;
-    }
-
-    public boolean release() {
-        if(detections == null)return false;
-        if(detections.settled()) {
-            detections.unset();
-            return true;
-        } else return false;
     }
 
     public boolean isInstant() {

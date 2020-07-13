@@ -83,6 +83,8 @@ public class Main extends Window {
         Var<Float> b = Var.create(1f);
         Var<Double> x = Var.create(0.25);
         Var<Double> y = Var.create(0.25);
+        Var<Double> w = Var.create();
+
         rect = Rectangle.form(Suite.set("x", x).set("y", y).set("w", 0.5).set("h", 0.5).set("r", r).set("g", g).set("b", b));
 //        rect = rectangle(Suite.set("w", width.percent(30)))
 

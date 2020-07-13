@@ -1,5 +1,7 @@
 package app.model;
 
+import app.model.variable.Fun;
+import app.model.variable.Monitor;
 import app.model.variable.Var;
 import jorg.jorg.Jorg;
 import org.joml.Matrix4f;
@@ -51,7 +53,7 @@ public class TextGraphic {
     private final Var<Shader> shader;
     private final Var<Integer> projectionWidth;
     private final Var<Integer> projectionHeight;
-    private final Var<Object> projectionMonitor;
+    private final Monitor projectionMonitor;
 
     public static TextGraphic form(Subject sub) {
         Shader shader = sub.get("shader").orGiven(defaultShader);
@@ -69,7 +71,7 @@ public class TextGraphic {
         this.bitmapHeight = 512;
         this.projectionWidth = Var.create(projectionWidth);
         this.projectionHeight = Var.create(projectionHeight);
-        this.projectionMonitor = Var.compose(true, Suite.set(this.projectionWidth).set(this.projectionHeight).set(this.shader));
+        this.projectionMonitor = Monitor.compose(true, Suite.set(this.projectionWidth).set(this.projectionHeight).set(this.shader));
 
         try {
             trueType = IOUtil.ioResourceToByteBuffer(fontPath, 512 * 1024);

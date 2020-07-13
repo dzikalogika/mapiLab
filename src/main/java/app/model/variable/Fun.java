@@ -1,11 +1,14 @@
 package app.model.variable;
 
+import jorg.processor.ProcessorException;
 import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.action.Action;
 
 import java.lang.ref.WeakReference;
 import java.util.Objects;
+import java.util.PrimitiveIterator;
+import java.util.Spliterator;
 import java.util.function.BiPredicate;
 
 public class Fun {
@@ -37,6 +40,18 @@ public class Fun {
                 s -> Objects.equals(s.direct(), s.recent().direct()) ? Suite.set() : s);
     }
 
+    public static Fun express(Subject params, String expression) throws ProcessorException {
+        ExpressionProcessor processor = new ExpressionProcessor();
+        processor.setParams(params);
+        processor.ready();
+        for(PrimitiveIterator.OfInt it = expression.codePoints().iterator();it.hasNext();) {
+            processor.advance(it.nextInt());
+        }
+        Subject result = processor.finish();
+
+        return new Fun(result.at("in"), result.at("out"), result.get("action").asExpected());
+    }
+
     Subject inputs;
     Subject outputs;
     Action transition;
@@ -59,7 +74,7 @@ public class Fun {
         for(var s : outputs.front()) {
             if(s.assigned(Var.class)) {
                 Var<?> v = s.asExpected();
-                if(v.cycleTest(this)) throw new RuntimeException("Cycle test failed");
+                if(v.cycleTest(this)) throw new RuntimeException("Illegal cycle detected");
                 v.attachInput(this);
                 this.outputs.set(s.key().direct(), new WeakReference<>(v));
             }

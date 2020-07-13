@@ -1,5 +1,6 @@
 package app.model;
 
+import app.model.variable.Monitor;
 import app.model.variable.Var;
 import jorg.jorg.Jorg;
 import suite.suite.Suite;
@@ -52,8 +53,8 @@ public class ColorOutfit extends GLObject implements Outfit {
 
     }
 
-    public Var<Object> getVertexMonitor() {
-        return Var.compose(false, Suite.set(red).set(green).set(blue).set(alpha));
+    public Monitor getVertexMonitor() {
+        return Monitor.compose(false, Suite.set(red).set(green).set(blue).set(alpha));
     }
 
     public int getDimension() {
