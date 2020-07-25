@@ -40,16 +40,8 @@ public class Fun {
                 s -> Objects.equals(s.direct(), s.recent().direct()) ? Suite.set() : s);
     }
 
-    public static Fun express(Subject params, String expression) throws ProcessorException {
-        ExpressionProcessor processor = new ExpressionProcessor();
-        processor.setParams(params);
-        processor.ready();
-        for(PrimitiveIterator.OfInt it = expression.codePoints().iterator();it.hasNext();) {
-            processor.advance(it.nextInt());
-        }
-        Subject result = processor.finish();
-
-        return new Fun(result.at("in"), result.at("out"), result.get("action").asExpected());
+    public static Fun express(Subject inputs, Subject outputs, String expression) throws ProcessorException {
+        return new Fun(inputs, outputs, Exp.compile(expression));
     }
 
     Subject inputs;

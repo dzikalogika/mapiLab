@@ -64,7 +64,7 @@ public class Var<T> extends AbstractVar<T> {
     public static<V> Var<V> compose(Subject components, String expression) {
         Var<V> composite = new Var<>(null, false);
         try {
-            Fun.express(prepareComponents(components, composite).set("#0", composite), "#0=" + expression).press(true);
+            Fun.express(prepareComponents(components, composite), Suite.set("$0", composite), "$0=" + expression).press(true);
         } catch (ProcessorException e) {
             throw new RuntimeException(e);
         }
@@ -94,6 +94,16 @@ public class Var<T> extends AbstractVar<T> {
     }
 
     public static void main(String[] args) {
+//        try {
+//            Exp exp = Exp.compile("c = f o o(1, b, a, 10, 50, 100, sum(50, 50, 50))");
+//            System.out.println(exp.play(Suite.set("a", 4).set("b", Math.PI).set("foo", (Action)Exp::sum)));
+//            System.out.println(exp.play(Suite.set("a", 20).set("b", -20).set("foo", (Action)Exp::min)));
+//
+//        } catch (ProcessorException e) {
+//            e.printStackTrace();
+//        }
+
+
         Var<Integer> a = Var.create(1, false);
         Var<Integer> b = a.suppressEquality();
         Var<Integer> c = Var.create(5, true);
