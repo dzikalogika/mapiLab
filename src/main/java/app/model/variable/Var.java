@@ -95,7 +95,7 @@ public class Var<T> extends AbstractVar<T> {
 
     public static void main(String[] args) {
         try {
-            Exp exp = Exp.compile("b = 30, c = f o o(a, b)");
+            Exp exp = Exp.compile("c = f o o(a, -+b%); b = 30; a = 50");
             System.out.println(exp.play(Suite.set("a", 4).set("b", 5).set("foo", (Action)Exp::sum)));
             System.out.println(exp.play(Suite.set("a", 20).set("b", -20).set("foo", (Action)Exp::min)));
 

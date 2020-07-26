@@ -14,29 +14,91 @@ public class ExpressionProcessor implements IntProcessor {
         PENDING, NUMBER, SYMBOL
     }
 
-    static class ActionProfile {
-        final int priority;
+    static abstract class ActionProfile {
         Action action;
+        String name;
 
-        public ActionProfile(int priority, Impression impression) {
-            this.priority = priority;
+        public ActionProfile(Impression impression, String name) {
             this.action = impression;
+            this.name = name;
         }
 
-        public ActionProfile(int priority, Action action) {
-            this.priority = priority;
+        public ActionProfile(Action action, String name) {
             this.action = action;
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+
+        public abstract boolean pushes(ActionProfile that);
+    }
+
+    static class PrefixActionProfile extends ActionProfile {
+
+        public PrefixActionProfile(Impression impression, String name) {
+            super(impression, name);
+        }
+
+        public PrefixActionProfile(Action action, String name) {
+            super(action, name);
+        }
+
+        @Override
+        public boolean pushes(ActionProfile that) {
+            return false;
+        }
+    }
+
+    static class InfixActionProfile extends ActionProfile {
+        final int priority;
+
+        public InfixActionProfile(int priority, Impression impression, String name) {
+            super(impression, name);
+            this.priority = priority;
+        }
+
+        public InfixActionProfile(int priority, Action action, String name) {
+            super(action, name);
+            this.priority = priority;
+        }
+
+        public boolean pushes(ActionProfile that) {
+            if(that instanceof InfixActionProfile)return priority <= ((InfixActionProfile) that).priority;
+            return true;
+        }
+    }
+
+    static class PostfixActionProfile extends ActionProfile {
+
+        public PostfixActionProfile(Impression impression, String name) {
+            super(impression, name);
+        }
+
+        public PostfixActionProfile(Action action, String name) {
+            super(action, name);
+        }
+
+        public boolean pushes(ActionProfile that) {
+            if(that instanceof InfixActionProfile)return false;
+            return true;
         }
     }
 
     static class FunctionProfile extends ActionProfile {
 
-        public FunctionProfile() {
-            super(100, null);
+        public FunctionProfile(String name) {
+            super(null, name);
         }
 
-        public FunctionProfile(Action action) {
-            super(100, action);
+        public FunctionProfile(Action action, String name) {
+            super(action, name);
+        }
+
+        public boolean pushes(ActionProfile that) {
+            return false;
         }
     }
 
@@ -79,21 +141,21 @@ public class ExpressionProcessor implements IntProcessor {
     }
 
     enum SpecialSymbol {
-        OPEN_BRACKET, CLOSE_BRACKET, ACTION_BRACKET
+        OPEN_BRACKET, CLOSE_BRACKET, SPLINE
     }
 
-    private static final ActionProfile attribution = new ActionProfile(0, ExpressionProcessor::attribution);
-    private static final ActionProfile maximum = new ActionProfile(1, ExpressionProcessor::maximum);
-    private static final ActionProfile minimum = new ActionProfile(1, ExpressionProcessor::minimum);
-    private static final ActionProfile addition = new ActionProfile(2, ExpressionProcessor::addition);
-    private static final ActionProfile subtraction = new ActionProfile(2, ExpressionProcessor::subtraction);
-    private static final ActionProfile multiplication = new ActionProfile(3, ExpressionProcessor::multiplication);
-    private static final ActionProfile division = new ActionProfile(3, ExpressionProcessor::division);
-    private static final ActionProfile exponentiation = new ActionProfile(4, ExpressionProcessor::exponentiation);
-    private static final ActionProfile reversion = new ActionProfile(5, ExpressionProcessor::reversion);
-    private static final ActionProfile inversion = new ActionProfile(5, ExpressionProcessor::inversion);
-    private static final ActionProfile proportion = new ActionProfile(5, ExpressionProcessor::proportion);
-    private static final ActionProfile absolution = new ActionProfile(5, ExpressionProcessor::absolution);
+    private static final ActionProfile attribution = new InfixActionProfile(0, ExpressionProcessor::attribution, "=");
+    private static final ActionProfile maximum = new InfixActionProfile(1, ExpressionProcessor::maximum, "|");
+    private static final ActionProfile minimum = new InfixActionProfile(1, ExpressionProcessor::minimum, "&");
+    private static final ActionProfile addition = new InfixActionProfile(2, ExpressionProcessor::addition, "+");
+    private static final ActionProfile subtraction = new InfixActionProfile(2, ExpressionProcessor::subtraction, "-");
+    private static final ActionProfile multiplication = new InfixActionProfile(3, ExpressionProcessor::multiplication, "*");
+    private static final ActionProfile division = new InfixActionProfile(3, ExpressionProcessor::division, "/");
+    private static final ActionProfile exponentiation = new InfixActionProfile(4, ExpressionProcessor::exponentiation, "^");
+    private static final ActionProfile reversion = new PrefixActionProfile(ExpressionProcessor::reversion, "0-");
+    private static final ActionProfile inversion = new PrefixActionProfile(ExpressionProcessor::inversion, "1/");
+    private static final ActionProfile proportion = new PostfixActionProfile(ExpressionProcessor::proportion, "%");
+    private static final ActionProfile absolution = new PrefixActionProfile(ExpressionProcessor::absolution, "||");
 
     private static final Subject descriptiveActionProfiles = Suite.
             set("sin", (Action)Exp::sin).
@@ -129,12 +191,15 @@ public class ExpressionProcessor implements IntProcessor {
         for(var s : actions.reverse()) {
             if(s.assigned(ActionProfile.class)) {
                 ActionProfile actionProfile = s.asExpected();
-                if(actionProfile.priority > profile.priority) {
+                if(profile.pushes(actionProfile)) {
                     rpn.add(actionProfile);
                     actions.unset(s.key().direct());
                 } else break;
-            } else if(s.direct() == SpecialSymbol.OPEN_BRACKET) {
+            } else if(s.direct() == SpecialSymbol.SPLINE) {
                 break;
+            } else {
+                rpn.add(s.direct());
+                actions.unset(s.key().direct());
             }
         }
         actions.add(profile);
@@ -164,7 +229,7 @@ public class ExpressionProcessor implements IntProcessor {
                 } else if(i == '^') {
                     pushAction(exponentiation);
                 } else if(i == '%') {
-                    pushAction(proportion);
+                    rpn.add(proportion);
                 } else if(i == '&') {
                     pushAction(minimum);
                 } else if(i == '|') {
@@ -175,21 +240,22 @@ public class ExpressionProcessor implements IntProcessor {
                     if(emptyValueBuffer)rpn.add(var);
                     pushAction(attribution);
                 } else if(i == '(') {
-                    actions.add(SpecialSymbol.OPEN_BRACKET);
+                    actions.add(SpecialSymbol.SPLINE);
                     rpn.add(SpecialSymbol.OPEN_BRACKET);
                     emptyValueBuffer = true;
                 } else if(i == ')') {
                     for(var s : actions.reverse()) {
                         actions.unset(s.key().direct());
-                        if(s.direct() == SpecialSymbol.OPEN_BRACKET) {
+                        if(s.direct() == SpecialSymbol.SPLINE) {
                             break;
                         } else {
                             rpn.add(s.direct());
                         }
                     }
+                    rpn.add(SpecialSymbol.CLOSE_BRACKET);
                 } else if(i == ',') {
                     for(var s : actions.reverse()) {
-                        if(s.direct() == SpecialSymbol.OPEN_BRACKET) {
+                        if(s.direct() == SpecialSymbol.SPLINE) {
                             break;
                         } else {
                             rpn.add(s.direct());
@@ -198,14 +264,17 @@ public class ExpressionProcessor implements IntProcessor {
                     }
                     emptyValueBuffer = true;
                 } else if(i == ';') {
+                    int brackets = 0;
                     for(var s : rpn.reverse()) {
                         if(s.direct() == SpecialSymbol.OPEN_BRACKET) {
-                            break;
-                        } else {
-                            actions.add(s.direct());
-                            rpn.unset(s.key().direct());
+                            if (--brackets < 0) break;
+                        } else if(s.direct() == SpecialSymbol.CLOSE_BRACKET) {
+                            ++brackets;
                         }
+                        actions.add(s.direct());
+                        rpn.unset(s.key().direct());
                     }
+                    actions.add(SpecialSymbol.SPLINE);
                     emptyValueBuffer = true;
                 } else if(i == '`') {
                     builder = new StringBuilder();
@@ -234,8 +303,8 @@ public class ExpressionProcessor implements IntProcessor {
                     builder.appendCodePoint(i);
                 } else if(i == '(') {
                     String str = builder.toString();
-                    pushAction(functions.getSaved(str, new FunctionProfile()).asExpected());
-                    actions.add(SpecialSymbol.OPEN_BRACKET);
+                    pushAction(functions.getSaved(str, new FunctionProfile(str + "()")).asExpected());
+                    actions.add(SpecialSymbol.SPLINE);
                     rpn.add(SpecialSymbol.OPEN_BRACKET);
                     state = State.PENDING;
                 } else if(!Character.isWhitespace(i)) {
@@ -268,10 +337,11 @@ public class ExpressionProcessor implements IntProcessor {
             }
         }
         for(var s : actions.reverse()) {
-            if(s.assigned(ActionProfile.class)) {
+            if(s.direct() != SpecialSymbol.SPLINE) {
                 rpn.add(s.direct());
             }
         }
+//        System.out.println(rpn);
         return Suite.set(new Exp() {
             @Override
             public Subject play(Subject subject) {
@@ -309,13 +379,12 @@ public class ExpressionProcessor implements IntProcessor {
                         } else {
                             su.asGiven(ActionProfile.class).action.play(result);
                         }
-                    } else {
+                    } else if(su.direct() == SpecialSymbol.OPEN_BRACKET){
                         bracketStack.insetAll(result.recent().front());
-//                        result.add(su.direct());
                     }
                 }
-                return Suite.zip(outputs.front().values().filter(VarNumber.class).map(v -> v.symbol),
-                        result.front().values().filter(Number.class).map(Number::doubleValue));
+                return outputs.front().advance(so -> Suite.set(so.key().direct(), so.asGiven(VarNumber.class).doubleValue())).
+                        toSubject();
             }
         });
     }

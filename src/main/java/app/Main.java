@@ -81,11 +81,13 @@ public class Main extends Window {
         Var<Float> r = Var.create(1f);
         Var<Float> g = Var.create(1f);
         Var<Float> b = Var.create(1f);
-        Var<Double> x = Var.create(0.25);
-        Var<Double> y = Var.create(0.25);
-        Var<Double> w = Var.create();
+        Var<Double> x = Var.compose(Suite.set("w", width), "400 * 2 / w - 1");
+        Var<Double> y = Var.compose(Suite.set("h", height), "400 * -2 / h + 1");
+        Var<Double> w = Var.compose(Suite.set("w", width), "300 / w * 2");
+        Var<Double> h = Var.compose(Suite.set("h", height), "300 / h * 2");
+        setOn(Suite.set(y), System.out::println);
 
-        rect = Rectangle.form(Suite.set("x", x).set("y", y).set("w", 0.5).set("h", 0.5).set("r", r).set("g", g).set("b", b));
+        rect = Rectangle.form(Suite.set("x", x).set("y", y).set("w", w).set("h", h).set("r", r).set("g", g).set("b", b));
 //        rect = rectangle(Suite.set("w", width.percent(30)))
 
         setOn(Suite.set(keyboard.getKey(GLFW_KEY_SPACE).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), Suite.
