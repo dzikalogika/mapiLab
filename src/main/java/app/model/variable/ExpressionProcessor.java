@@ -79,7 +79,7 @@ public class ExpressionProcessor implements IntProcessor {
     }
 
     enum SpecialSymbol {
-        OPEN_BRACKET, CLOSE_BRACKET
+        OPEN_BRACKET, CLOSE_BRACKET, ACTION_BRACKET
     }
 
     private static final ActionProfile attribution = new ActionProfile(0, ExpressionProcessor::attribution);
@@ -176,24 +176,34 @@ public class ExpressionProcessor implements IntProcessor {
                     pushAction(attribution);
                 } else if(i == '(') {
                     actions.add(SpecialSymbol.OPEN_BRACKET);
+                    rpn.add(SpecialSymbol.OPEN_BRACKET);
                     emptyValueBuffer = true;
                 } else if(i == ')') {
                     for(var s : actions.reverse()) {
-                        if(s.assigned(ActionProfile.class)) {
-                            rpn.add(s.direct());
-                            actions.unset(s.key().direct());
-                        } else if(s.direct() == SpecialSymbol.OPEN_BRACKET) {
-                            actions.unset(s.key().direct());
+                        actions.unset(s.key().direct());
+                        if(s.direct() == SpecialSymbol.OPEN_BRACKET) {
                             break;
+                        } else {
+                            rpn.add(s.direct());
                         }
                     }
                 } else if(i == ',') {
                     for(var s : actions.reverse()) {
-                        if(s.assigned(ActionProfile.class)) {
+                        if(s.direct() == SpecialSymbol.OPEN_BRACKET) {
+                            break;
+                        } else {
                             rpn.add(s.direct());
                             actions.unset(s.key().direct());
-                        } else if(s.direct() == SpecialSymbol.OPEN_BRACKET) {
+                        }
+                    }
+                    emptyValueBuffer = true;
+                } else if(i == ';') {
+                    for(var s : rpn.reverse()) {
+                        if(s.direct() == SpecialSymbol.OPEN_BRACKET) {
                             break;
+                        } else {
+                            actions.add(s.direct());
+                            rpn.unset(s.key().direct());
                         }
                     }
                     emptyValueBuffer = true;
@@ -278,6 +288,7 @@ public class ExpressionProcessor implements IntProcessor {
                         else throw new RuntimeException("Function '" + funName + "' is not defined");
                     }
                 }
+                Subject bracketStack = Suite.set();
                 Subject result = Suite.set();
                 for (var su : rpn.front()) {
                     if (su.assigned(Number.class)) {
@@ -286,16 +297,22 @@ public class ExpressionProcessor implements IntProcessor {
                         if (su.assigned(FunctionProfile.class)) {
                             Subject p = Suite.set();
                             for (var s1 : result.reverse()) {
+                                if (s1.direct() == bracketStack.recent().direct()) {
+                                    bracketStack.unset(bracketStack.recent().key().direct());
+                                    break;
+                                }
                                 result.unset(s1.key().direct());
-                                if (s1.direct() == SpecialSymbol.OPEN_BRACKET) break;
                                 p.addAt(Slot.PRIME, s1.direct());
                             }
                             p = su.asGiven(FunctionProfile.class).action.play(p);
-                            result.insetAll(p.front());
+                            result.addAll(p.front().values());
                         } else {
                             su.asGiven(ActionProfile.class).action.play(result);
                         }
-                    } else result.add(su.direct());
+                    } else {
+                        bracketStack.insetAll(result.recent().front());
+//                        result.add(su.direct());
+                    }
                 }
                 return Suite.zip(outputs.front().values().filter(VarNumber.class).map(v -> v.symbol),
                         result.front().values().filter(Number.class).map(Number::doubleValue));

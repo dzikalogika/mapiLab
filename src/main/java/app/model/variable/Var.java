@@ -94,54 +94,54 @@ public class Var<T> extends AbstractVar<T> {
     }
 
     public static void main(String[] args) {
-//        try {
-//            Exp exp = Exp.compile("c = f o o(1, b, a, 10, 50, 100, sum(50, 50, 50))");
-//            System.out.println(exp.play(Suite.set("a", 4).set("b", Math.PI).set("foo", (Action)Exp::sum)));
-//            System.out.println(exp.play(Suite.set("a", 20).set("b", -20).set("foo", (Action)Exp::min)));
+        try {
+            Exp exp = Exp.compile("b = 30, c = f o o(a, b)");
+            System.out.println(exp.play(Suite.set("a", 4).set("b", 5).set("foo", (Action)Exp::sum)));
+            System.out.println(exp.play(Suite.set("a", 20).set("b", -20).set("foo", (Action)Exp::min)));
+
+        } catch (ProcessorException e) {
+            e.printStackTrace();
+        }
+
+
+//        Var<Integer> a = Var.create(1, false);
+//        Var<Integer> b = a.suppressEquality();
+//        Var<Integer> c = Var.create(5, true);
+//        Fun assign = Fun.assign(b, c);
+//        System.out.println(c.get());
+//        System.out.println("before set 2");
+//        a.set(2);
+//        System.out.println("after set 2");
+//        System.out.println(c.get());
+//        System.out.println("before set 2");
+//        c.set(3);
+//        a.set(2);
+//        System.out.println("after set 2");
+//        System.out.println(c.get());
+//        a.set(5);
+//        System.out.println(c.get());
+//        assign.detach();
+//        a.set(8);
+//        System.out.println(c.get());
+//        Fun.assign(b, c);
+//        a.set(11);
+//        System.out.println(c.get());
+//        c.detach();
+//        a.set(1);
+//        System.out.println(c.get());
+//        Var<Integer> d = Var.create();
+//        Fun.compose(Suite.set(b), Suite.set(0, c).set(1, d), s -> {
+//            System.out.println("run fun");
+//            int val = s.asInt();
+//            return Suite.set(0, val + 1).set(1, val + 2);
+//        }).press(true);
+//        System.out.println(c.get());
+//        System.out.println(d.get());
 //
-//        } catch (ProcessorException e) {
-//            e.printStackTrace();
-//        }
-
-
-        Var<Integer> a = Var.create(1, false);
-        Var<Integer> b = a.suppressEquality();
-        Var<Integer> c = Var.create(5, true);
-        Fun assign = Fun.assign(b, c);
-        System.out.println(c.get());
-        System.out.println("before set 2");
-        a.set(2);
-        System.out.println("after set 2");
-        System.out.println(c.get());
-        System.out.println("before set 2");
-        c.set(3);
-        a.set(2);
-        System.out.println("after set 2");
-        System.out.println(c.get());
-        a.set(5);
-        System.out.println(c.get());
-        assign.detach();
-        a.set(8);
-        System.out.println(c.get());
-        Fun.assign(b, c);
-        a.set(11);
-        System.out.println(c.get());
-        c.detach();
-        a.set(1);
-        System.out.println(c.get());
-        Var<Integer> d = Var.create();
-        Fun.compose(Suite.set(b), Suite.set(0, c).set(1, d), s -> {
-            System.out.println("run fun");
-            int val = s.asInt();
-            return Suite.set(0, val + 1).set(1, val + 2);
-        }).press(true);
-        System.out.println(c.get());
-        System.out.println(d.get());
-
-        Var<Integer> e = Var.compose(Suite.set("c", c).set("d", d), "(c + d) * 20");
-        System.out.println(e.get());
-        a.set(2);
-        System.out.println(e.get());
+//        Var<Integer> e = Var.compose(Suite.set("c", c).set("d", d), "(c + d) * e; e = 30");
+//        System.out.println(e.get());
+//        a.set(2);
+//        System.out.println(e.get());
     }
 
     T value;
