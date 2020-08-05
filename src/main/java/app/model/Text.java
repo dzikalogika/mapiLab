@@ -1,68 +1,82 @@
 package app.model;
 
 import app.model.variable.Var;
-import org.joml.Vector2d;
-import org.joml.Vector2f;
-import org.joml.Vector2i;
-import org.joml.Vector3f;
 import suite.suite.Subject;
-import suite.suite.Suite;
 
 public class Text {
 
     public static Text form(Subject sub) {
-        String content = Suite.from(sub).get("text").asExpected();
-        float positionX = Suite.from(sub).get("x", Number.class, Number::floatValue).asExpected();
-        float positionY = Suite.from(sub).get("y", Number.class, Number::floatValue).asExpected();
-        float colorR = Suite.from(sub).get("r", Float.class, Float::floatValue).
-                or("r", Integer.class, i -> i / 255f).
-                or("color", Vector3f.class, v -> v.x).
-                or("color", String.class, s -> Integer.parseInt(s, 0, 2, 16) / 255f).orGiven(0f);
-        float colorG = Suite.from(sub).get("g", Float.class, Float::floatValue).
-                or("g", Integer.class, i -> i / 255f).
-                or("color", Vector3f.class, v -> v.y).
-                or("color", String.class, s -> Integer.parseInt(s, 2, 4, 16) / 255f).orGiven(0f);
-        float colorB = Suite.from(sub).get("b", Float.class, Float::floatValue).
-                or("b", Integer.class, i -> i / 255f).
-                or("color", Vector3f.class, v -> v.z).
-                or("color", String.class, s -> Integer.parseInt(s, 4, 6, 16) / 255f).orGiven(0f);
-        double size = Suite.from(sub).get("size", Number.class, Number::doubleValue).orGiven(24.0);
-        TextGraphic graphicModel = Suite.from(sub).get("graphicModel").orGiven(TextGraphic.getForSize(size));
-        return new Text(content, new Vector2f(positionX, positionY), size, new Vector3f(colorR, colorG, colorB), graphicModel);
+        Var<String> content = Var.from(sub, "text", String.class).asExpected();
+        Var<Float> x = Var.floatFrom(sub, "x").asExpected();
+        Var<Float> y = Var.floatFrom(sub, "y").asExpected();
+        Var<Double> s = Var.doubleFrom(sub, "s").orGiven(new Var<>(24.0, false));
+        Var<Float> r = Var.floatFrom(sub, "r").orGiven(new Var<>(0f, false));
+        Var<Float> g = Var.floatFrom(sub, "g").orGiven(new Var<>(0f, false));
+        Var<Float> b = Var.floatFrom(sub, "b").orGiven(new Var<>(0f, false));
+        Var<Float> a = Var.floatFrom(sub, "a").orGiven(new Var<>(0f, false));
+        Var<TextGraphic> graphicModel = Var.from(sub, "graphic", TextGraphic.class).
+                orGiven(new Var<>(TextGraphic.getForSize(s.get()), false));
+        return new Text(content, x, y, s, r, g, b, a, graphicModel);
     }
 
     Var<String> content;
-    Var<Vector2f> position;
+    Var<Float> xPosition;
+    Var<Float> yPosition;
     Var<Double> size;
-    Var<Vector3f> color;
+    Var<Float> redColor;
+    Var<Float> greenColor;
+    Var<Float> blueColor;
+    Var<Float> alphaColor;
     Var<TextGraphic> graphicModel;
 
-    public Text(String content, Vector2f position, double size, Vector3f color, TextGraphic graphicModel) {
-        this.content = Var.create(content);
-        this.position = Var.create(position);
-        this.size = Var.create(size);
-        this.color = Var.create(color);
-        this.graphicModel = Var.compose(graphicModel, Suite.set(this.size), s -> TextGraphic.getForSize(s.asExpected()));
+    public Text(Var<String> content, Var<Float> xPosition, Var<Float> yPosition, Var<Double> size, Var<Float> redColor,
+                Var<Float> greenColor, Var<Float> blueColor, Var<Float> alphaColor, Var<TextGraphic> graphicModel) {
+        this.content = content;
+        this.xPosition = xPosition;
+        this.yPosition = yPosition;
+        this.size = size;
+        this.redColor = redColor;
+        this.greenColor = greenColor;
+        this.blueColor = blueColor;
+        this.alphaColor = alphaColor;
+        this.graphicModel = graphicModel;
     }
 
     public void render() {
-        graphicModel.get().render(content.get(), position.get().x, position.get().y, size.get() / graphicModel.get().getSize(), color.get());
+        graphicModel.get().render(content.get(), xPosition.get(), yPosition.get(), size.get() / graphicModel.get().getSize(),
+                redColor.get(), greenColor.get(), blueColor.get(), alphaColor.get());
     }
 
     public Var<String> getContent() {
         return content;
     }
 
-    public Var<Vector2f> getPosition() {
-        return position;
+    public Var<Float> getXPosition() {
+        return xPosition;
+    }
+
+    public Var<Float> getYPosition() {
+        return yPosition;
     }
 
     public Var<Double> getSize() {
         return size;
     }
 
-    public Var<Vector3f> getColor() {
-        return color;
+    public Var<Float> getRedColor() {
+        return redColor;
+    }
+
+    public Var<Float> getGreenColor() {
+        return greenColor;
+    }
+
+    public Var<Float> getBlueColor() {
+        return blueColor;
+    }
+
+    public Var<Float> getAlphaColor() {
+        return alphaColor;
     }
 
     public Var<TextGraphic> getGraphicModel() {

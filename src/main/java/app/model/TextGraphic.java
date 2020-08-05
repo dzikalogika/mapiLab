@@ -164,7 +164,8 @@ public class TextGraphic {
         return projectionHeight;
     }
 
-    public void render(String text, float x, float y, double scale, Vector3f color) {
+    public void render(String text, float x, float y, double scale, float redColor, float greenColor,
+                       float blueColor, float alphaColor) {
 
         float[] X = new float[]{x};
         float[] Y = new float[]{y};
@@ -178,7 +179,7 @@ public class TextGraphic {
             shader.set("projection", new Matrix4f().ortho2D(0f, width, 0f, height));
         }
         glActiveTexture(GL_TEXTURE0);
-        shader.set("textColor", color.x, color.y, color.z);
+        shader.set("textColor", redColor, greenColor, blueColor);
         glBindVertexArray(vao);
 
         STBTTAlignedQuad quad = STBTTAlignedQuad.create();

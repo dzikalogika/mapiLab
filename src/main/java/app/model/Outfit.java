@@ -11,10 +11,12 @@ public interface Outfit {
     void print();
 
     static Outfit form(Subject sub) {
-        Var<Float> r = Var.ofFloatFrom(sub, "r").orGiven(Var.create(0f));
-        Var<Float> g = Var.ofFloatFrom(sub, "g").orGiven(Var.create(0f));
-        Var<Float> b = Var.ofFloatFrom(sub, "b").orGiven(Var.create(0f));
-        Var<Float> a = Var.ofFloatFrom(sub, "a").orGiven(Var.create(1f));
-        return new ColorOutfit(r, g, b, a);
+        ColorOutfit colorOutfit = new ColorOutfit();
+        Subject s;
+        if((s = sub.get("r")).settled()) colorOutfit.red.assign(s, true);
+        if((s = sub.get("g")).settled()) colorOutfit.green.assign(s, true);
+        if((s = sub.get("b")).settled()) colorOutfit.blue.assign(s, true);
+        if((s = sub.get("a")).settled()) colorOutfit.alpha.assign(s, true);
+        return colorOutfit;
     }
 }

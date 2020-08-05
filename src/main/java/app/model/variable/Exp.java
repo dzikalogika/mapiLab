@@ -9,6 +9,14 @@ import java.util.PrimitiveIterator;
 
 public abstract class Exp implements Action {
 
+    Subject inputs;
+    Subject outputs;
+
+    public Exp(Subject inputs, Subject outputs) {
+        this.inputs = inputs;
+        this.outputs = outputs;
+    }
+
     public static Exp compile(String expressionString) throws ProcessorException {
         ExpressionProcessor processor = new ExpressionProcessor();
         processor.ready();

@@ -1,56 +1,70 @@
 package app.model;
 
-import app.model.variable.Monitor;
-import app.model.variable.Var;
-import org.joml.Vector2d;
+import app.model.variable.*;
+import suite.sets.Sets;
 import suite.suite.Subject;
 import suite.suite.Suite;
 
-public class Rectangle {
 
-    private final Var<Vector2d> position;
-    private final Var<Double> width;
-    private final Var<Double> height;
-    private final Var<Outfit> outfit;
+public class Rectangle extends Playground {
 
-    private final Monitor vertexMonitor;
+    private final NumberVar right = NumberVar.create(.2);
+    private final NumberVar top = NumberVar.create(.2);
+    private final NumberVar left = NumberVar.create(-.2);
+    private final NumberVar bottom = NumberVar.create(-.2);
+    private final Var<Outfit> outfit = Var.create();
+
+    private Monitor vertexMonitor;
 
 
     public static Rectangle form(Subject sub) {
-        Var<Vector2d> position = Var.ofObjectFrom(sub, "position", Vector2d.class).orGiven(null);
-        if(position == null) {
-            Var<Double> x = Var.ofDoubleFrom(sub, "x").asExpected();
-            Var<Double> y = Var.ofDoubleFrom(sub, "y").asExpected();
-            position = Var.compose(Suite.set(x).set(y), s -> new Vector2d(s.asGiven(Double.class), s.recent().asExpected()));
+
+        Rectangle rect = new Rectangle();
+        Subject x = sub.get("x"), y = sub.get("y"), w = sub.get("w"), h = sub.get("h");
+        if(x.settled() && w.settled()) {
+            Fun.express(Sets.union(x, w), Suite.set("lx", rect.left).set("rx", rect.right),
+                    "lx = x - w / 2, rx = x + w / 2").reduce(true);
         }
-        Var<Double> w = Var.ofDoubleFrom(sub, "w").asExpected();
-        Var<Double> h = Var.ofDoubleFrom(sub, "h").asExpected();
-        Var<Outfit> outfit = Var.ofObjectFrom(sub, "outfit", Outfit.class).
-                orDo(s -> Var.create(Outfit.form(s)));
-        return new Rectangle(position, w, h, outfit);
+        if(y.settled() && h.settled()) {
+            Fun.express(Sets.union(y, h), Suite.set("ty", rect.top).set("by", rect.bottom),
+                    "ty = y + h / 2, by = y - h / 2").reduce(true);
+        }
+        Subject s;
+        if((s = sub.get("lx")).settled()) rect.left.assign(s, true);
+        if((s = sub.get("rx")).settled()) rect.right.assign(s, true);
+        if((s = sub.get("ty")).settled()) rect.top.assign(s, true);
+        if((s = sub.get("by")).settled()) rect.bottom.assign(s, true);
+
+        if((s = sub.get("outfit")).settled()) rect.outfit.assign(s, true);
+        else rect.outfit.set(Outfit.form(sub));
+
+        return rect;
     }
 
-    public Rectangle(Var<Vector2d> position, Var<Double> width, Var<Double> height, Var<Outfit> outfit) {
-        this.position = position;
-        this.width = width;
-        this.height = height;
-        this.outfit = outfit;
+    public Rectangle() {
 
-        outfit.get().updateIndices(new int[]{0, 2, 1, 0, 3, 2});
-        vertexMonitor = Monitor.compose(true, Suite.set(position).set(this.width).set(this.height).
-                set(outfit.get().getVertexMonitor()));
+        instant(Suite.set(outfit), s -> {
+            Outfit o = s.asExpected();
+            vertexMonitor = Monitor.compose(true, Suite.set(top).set(left).set(bottom).set(right).
+                    set(o.getVertexMonitor()));
+            o.updateIndices(new int[]{0, 2, 1, 0, 3, 2});
+        });
     }
 
-    public Var<Vector2d> getPosition() {
-        return position;
+    public NumberVar getRight() {
+        return right;
     }
 
-    public Var<Double> getWidth() {
-        return width;
+    public NumberVar getTop() {
+        return top;
     }
 
-    public Var<Double> getHeight() {
-        return height;
+    public NumberVar getLeft() {
+        return left;
+    }
+
+    public NumberVar getBottom() {
+        return bottom;
     }
 
     public Var<Outfit> getOutfit() {
@@ -67,19 +81,18 @@ public class Rectangle {
 
     public float[] getVertex(float[] collector, int offset, int stride) {
         int i = offset;
-        float x = (float)position.get().x, y = (float)position.get().y,
-                w = width.get().floatValue(), h = height.get().floatValue();
-        collector[i++] = x;
-        collector[i] = y;
+        float x0 = left.getFloat(), x1 = right.getFloat(), y0 = top.getFloat(), y1 = bottom.getFloat();
+        collector[i++] = x1;
+        collector[i] = y0;
         i += stride - 1;
-        collector[i++] = x;
-        collector[i] = y + h;
+        collector[i++] = x1;
+        collector[i] = y1;
         i += stride - 1;
-        collector[i++] = x + w;
-        collector[i] = y + h;
+        collector[i++] = x0;
+        collector[i] = y1;
         i += stride - 1;
-        collector[i++] = x + w;
-        collector[i] = y;
+        collector[i++] = x0;
+        collector[i] = y0;
         return collector;
     }
 }

@@ -5,7 +5,11 @@ import app.model.input.Keyboard;
 import app.model.input.Mouse;
 import app.model.variable.*;
 import org.joml.Vector3f;
+import suite.suite.Subject;
 import suite.suite.Suite;
+import suite.suite.action.Action;
+
+import java.util.Objects;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL45.*;
@@ -54,21 +58,21 @@ public class Main extends Window {
                         suppress((s1, s2) -> s2 == GLFW_RELEASE)),
                 s -> "." + s.asString());
 
-        text1 = Text.form(Suite.set("x", 30).set("y", 50).set("size", 50f).set("text", "text").set("r", 200).set("b", 200));
+        text1 = Text.form(Suite.set("x", 30).set("y", 50).set("size", 50).set("text", "text").set("r", 200).set("b", 200));
 
-        setOn(Suite.set(keyboard.getCharEvent()).set(text1.getContent().weak()), text1.getContent(), s -> {
+        instant(Suite.set(keyboard.getCharEvent()).set(text1.getContent().weak()), text1.getContent(), s -> {
             Keyboard.CharEvent e = s.asExpected();
             String content = s.recent().asString();
             return new StringBuilder(content).appendCodePoint(e.getCodepoint()).toString();
         });
 
-        Fun t1 = setOn(Suite.set(text1.getContent().weak()).set(keyboard.getKey(GLFW_KEY_BACKSPACE).
+        Fun t1 = instant(Suite.set(text1.getContent().weak()).set(keyboard.getKey(GLFW_KEY_BACKSPACE).
                 getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), text1.getContent(), s -> {
             String content = s.asString();
             return content.length() > 0 ? content.substring(0, content.length() - 1) : "";
         });
 
-        setOn(Suite.set(t1).set(Fun.SELF).set(keyboard.getKey(GLFW_KEY_ENTER).getState()), s -> {
+        instant(Suite.set(t1).set(Fun.SELF).set(keyboard.getKey(GLFW_KEY_ENTER).getState()), s -> {
             s.asGiven(Fun.class).detach();
             s.get(Fun.SELF).asGiven(Fun.class).detach();
         });
@@ -78,61 +82,50 @@ public class Main extends Window {
             return e.getPosition().toString() + "  " + e.getAction() + "   " + e.getModifiers();
         });
 
-        Var<Float> r = Var.create(1f);
-        Var<Float> g = Var.create(1f);
-        Var<Float> b = Var.create(1f);
-        Var<Double> x = Var.compose(Suite.set("w", width), "400 * 2 / w - 1");
-        Var<Double> y = Var.compose(Suite.set("h", height), "400 * -2 / h + 1");
-        Var<Double> w = Var.compose(Suite.set("w", width), "300 / w * 2");
-        Var<Double> h = Var.compose(Suite.set("h", height), "300 / h * 2");
-        setOn(Suite.set(y), System.out::println);
+        NumberVar r = NumberVar.create(1);
+        NumberVar g = NumberVar.create(1);
+        NumberVar b = NumberVar.create(1);
+        NumberVar xs = NumberVar.create(400);
+        NumberVar ys = NumberVar.create(300);
+        NumberVar w = NumberVar.create(300);
+        NumberVar h = NumberVar.create(300);
 
-        rect = Rectangle.form(Suite.set("x", x).set("y", y).set("w", w).set("h", h).set("r", r).set("g", g).set("b", b));
-//        rect = rectangle(Suite.set("w", width.percent(30)))
+        rect = Rectangle.form(Suite.set("x", pxFromLeft(Suite.set(xs))).set("y", pxFromTop(Suite.set(ys))).
+                set("w", pxWidth(Suite.set(w))).set("h", pxHeight(Suite.set(h))).set("r", r).set("g", g).set("b", b).set("a", .5f));
+//        rect = rectangle(Suite.set("x", Unit.pixels(400)))
 
-        setOn(Suite.set(keyboard.getKey(GLFW_KEY_SPACE).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), Suite.
-                set("r", r).
-                set("g", g).
-                set("b", b), s -> {
+        instant(Suite.set(keyboard.getKey(GLFW_KEY_SPACE).getState().select((s1, s2) -> s2 == GLFW_PRESS)), Suite.
+                set("r", r).set("g", g).set("b", b), s -> {
             return Suite.set("r", (float)Math.random()).set("g", (float)Math.random()).set("b", (float)Math.random());
         });
 
-        setOn(Suite.set(x.weak()).set(keyboard.getKey(GLFW_KEY_LEFT).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), x,
-                s -> {
-                    System.out.println("left");
-                    return s.asGiven(Double.class) - 0.1;
-                });
+        instant(Suite.set(xs.weak()).set(keyboard.getKey(GLFW_KEY_LEFT).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), xs,
+                s -> s.asInt() - 10);
 
-        setOn(Suite.set(x.weak()).set(keyboard.getKey(GLFW_KEY_RIGHT).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), x,
-                s -> {
-                    System.out.println("right");
-                    return s.asGiven(Double.class) + 0.1;
-                });
+        instant(Suite.set(xs.weak()).set(keyboard.getKey(GLFW_KEY_RIGHT).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), xs,
+                s -> s.asInt() + 10);
 
-        setOn(Suite.set(y.weak()).set(keyboard.getKey(GLFW_KEY_DOWN).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), y,
-                s -> {
-                    System.out.println("down");
-                    return s.asGiven(Double.class) - 0.1;
-                });
+        instant(Suite.set(ys.weak()).set(keyboard.getKey(GLFW_KEY_DOWN).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), ys,
+                s -> s.asInt() + 10);
 
-        setOn(Suite.set(y.weak()).set(keyboard.getKey(GLFW_KEY_UP).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), y,
-                s -> {
-                    System.out.println("up");
-                    return s.asGiven(Double.class) + 0.1;
-                });
+        instant(Suite.set(ys.weak()).set(keyboard.getKey(GLFW_KEY_UP).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), ys,
+                s -> s.asInt() - 10);
+
+        instant(Suite.set(w.weak()).set(keyboard.getKey(GLFW_KEY_W).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), w,
+                s -> keyboard.getKey(GLFW_KEY_LEFT_SHIFT).getPressed().get() ? s.asInt() - 10 : s.asInt() + 10);
 
     }
 
     @Override
-    protected void play() {
+    public void play() {
+        super.play();
         processInput(getGlid());
-        triggersRoot.get();
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        text.render(str.get(), 30f, 300f, 1., new Vector3f(0.5f, 0.8f, 0.2f));
-        text.render(space.get(), 30f, 400f, 1., new Vector3f(0.5f, 0.8f, 0.2f));
+        text.render(str.get(), 30f, 300f, 1., 0.5f, 0.8f, 0.2f, 0f);
+        text.render(space.get(), 30f, 400f, 1., 0.5f, 0.8f, 0.2f, 0f);
         text1.render();
         rect.print();
 

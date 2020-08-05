@@ -1,6 +1,6 @@
 package app.model.variable;
 
-public class WeakVar<T> extends AbstractVar<T> {
+public class WeakVar<T> implements ValueProducer<T> {
 
     Var<T> var;
 
@@ -9,14 +9,14 @@ public class WeakVar<T> extends AbstractVar<T> {
     }
 
     @Override
-    T get(Fun fun) {
+    public T get(Fun fun) {
         return var.value;
     }
 
     @Override
-    void attachOutput(Fun fun) {}
+    public void attachOutput(Fun fun) {}
 
     @Override
-    void detachOutput(Fun fun) {}
+    public void detachOutput(Fun fun) {}
 
 }

@@ -1,6 +1,6 @@
 package app.model.variable;
 
-public class Constant<T> extends AbstractVar<T> {
+public class Constant<T> implements ValueProducer<T> {
 
     T value;
 
@@ -9,13 +9,13 @@ public class Constant<T> extends AbstractVar<T> {
     }
 
     @Override
-    T get(Fun fun) {
+    public T get(Fun fun) {
         return value;
     }
 
     @Override
-    void attachOutput(Fun fun) {}
+    public void attachOutput(Fun fun) {}
 
     @Override
-    void detachOutput(Fun fun) {}
+    public void detachOutput(Fun fun) {}
 }

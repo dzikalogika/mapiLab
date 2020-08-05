@@ -7,10 +7,11 @@ import suite.suite.Suite;
 import suite.suite.action.Action;
 
 import java.lang.ref.WeakReference;
+import java.util.Objects;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 
-public class Var<T> extends AbstractVar<T> {
+public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
     /**
      * Leniwa implementacja (instant = false) czeka z wywołaniem funkcji do czasu użycia get().
      * Stan zmiennych położonych wyżej jest zawsze brany ostatni przed użyciem get(), a funkcje wywoływane tylko raz.
@@ -33,6 +34,12 @@ public class Var<T> extends AbstractVar<T> {
 
     public static<V> Var<V> create(V value, boolean instant) {
         return new Var<>(value, instant);
+    }
+
+    public static<V> Var<V> assigned(Var<V> that) {
+        Var<V> v = new Var<>(null, false);
+        Fun.assign(that, v).press(true);
+        return v;
     }
 
     public static<V> Var<V> compose(V value, Subject components, Action recipe, Object resultKey) {
@@ -63,11 +70,7 @@ public class Var<T> extends AbstractVar<T> {
 
     public static<V> Var<V> compose(Subject components, String expression) {
         Var<V> composite = new Var<>(null, false);
-        try {
-            Fun.express(prepareComponents(components, composite), Suite.set("$0", composite), "$0=" + expression).press(true);
-        } catch (ProcessorException e) {
-            throw new RuntimeException(e);
-        }
+        Fun.express(prepareComponents(components, composite), Suite.set("$0", composite), "$0=" + expression).press(true);
         return composite;
     }
 
@@ -81,27 +84,36 @@ public class Var<T> extends AbstractVar<T> {
         }).toSubject();
     }
 
-    public static Query ofDoubleFrom(Subject s, Object key) {
-        return Suite.from(s).get(key, Var.class).or(key, Number.class, n -> new Var<>(n.doubleValue(), true));
+    public static Query doubleFrom(Subject s, Object key) {
+        return Suite.from(s).get(key, Var.class).or(key, Number.class, n -> new Var<>(n.floatValue(), false));
     }
 
-    public static Query ofFloatFrom(Subject s, Object key) {
-        return Suite.from(s).get(key, Var.class).or(key, Number.class, n -> new Var<>(n.floatValue(), true));
+    public static Query floatFrom(Subject s, Object key) {
+        return Suite.from(s).get(key, Var.class).or(key, Number.class, n -> new Var<>(n.floatValue(), false));
     }
 
-    public static <V> Query ofObjectFrom(Subject s, Object key, Class<V> type) {
-        return Suite.from(s).get(key, Var.class).or(key, type, o -> new Var<>(o, true));
+    public static <V> Query from(Subject s, Object key, Class<V> type) {
+        return Suite.from(s).get(key, Var.class).or(key, type, v -> new Var<>(v, false));
     }
 
     public static void main(String[] args) {
-        try {
-            Exp exp = Exp.compile("c = f o o(a, -+b%); b = 30; a = 50");
-            System.out.println(exp.play(Suite.set("a", 4).set("b", 5).set("foo", (Action)Exp::sum)));
-            System.out.println(exp.play(Suite.set("a", 20).set("b", -20).set("foo", (Action)Exp::min)));
-
-        } catch (ProcessorException e) {
-            e.printStackTrace();
-        }
+        Var<Double> width = Var.create(800.0);
+        Var<Double> ys = Var.create(0.0);
+        Var<Double> x = Var.compose(Suite.set("w", width).set("s", ys).set("fun", (Action) s -> {
+            System.out.println(s);
+            return s;
+        }), "fun((400 + s) * 2 / w - 1)");
+        Monitor m = new Monitor();
+        m.instant(Suite.set(x), System.out::println);
+        ys.set(2.0);
+//        try {
+//            Exp exp = Exp.compile("c = f o o(a, -+b%); b = 30; a = 50");
+//            System.out.println(exp.play(Suite.set("a", 4).set("b", 5).set("foo", (Action)Exp::sum)));
+//            System.out.println(exp.play(Suite.set("a", 20).set("b", -20).set("foo", (Action)Exp::min)));
+//
+//        } catch (ProcessorException e) {
+//            e.printStackTrace();
+//        }
 
 
 //        Var<Integer> a = Var.create(1, false);
@@ -145,7 +157,7 @@ public class Var<T> extends AbstractVar<T> {
     }
 
     T value;
-    public Subject inputs = Suite.set();
+    Subject inputs = Suite.set();
     Subject outputs = Suite.set();
     Subject detections;
 
@@ -165,7 +177,7 @@ public class Var<T> extends AbstractVar<T> {
         return value;
     }
 
-    T get(Fun fun) {
+    public T get(Fun fun) {
         return get();
     }
 
@@ -180,7 +192,7 @@ public class Var<T> extends AbstractVar<T> {
         }
     }
 
-    void set(T value, Fun fun) {
+    public void set(T value, Fun fun) {
         this.value = value;
         if(detections != null)detections.unset(fun); // Jeśli wywołana w gałęzi równoległej, oznacz jako wykonana.
         for(var s : outputs.front()) {
@@ -192,7 +204,7 @@ public class Var<T> extends AbstractVar<T> {
         }
     }
 
-    boolean press(Fun fun) {
+    public boolean press(Fun fun) {
         if(detections == null) {
             fun.execute();
             return true;
@@ -211,6 +223,7 @@ public class Var<T> extends AbstractVar<T> {
     }
 
     public void attachOutput(Fun fun) {
+        if(detections != null && detections.settled()) fun.detection = true;
         outputs.put(new WeakReference<>(fun));
     }
 
@@ -262,6 +275,10 @@ public class Var<T> extends AbstractVar<T> {
         return detections == null;
     }
 
+    public Var<T> select(BiPredicate<T, T> selector) {
+        return suppress(selector.negate());
+    }
+
     public Var<T> suppress(BiPredicate<T, T> suppressor) {
         Var<T> suppressed = new Var<>(value, true);
         Fun.suppress(this, suppressed, suppressor);
@@ -280,8 +297,15 @@ public class Var<T> extends AbstractVar<T> {
         return suppressed;
     }
 
-    public<V extends T> Var<T> assign(Var<V> var) {
-        Fun.assign(var, this);
+    public<V extends T> Var<T> assign(ValueProducer<V> vp) {
+        Fun.assign(vp, this).press(true);
+        return this;
+    }
+
+    public<V extends T> Var<T> assign(Subject sub, boolean reduce) {
+        Fun fun = new Fun(sub, Suite.set(Var.OWN_VALUE, this), s -> Suite.set(Var.OWN_VALUE, s.direct()));
+        if(reduce)fun.reduce(true);
+        else fun.press(true);
         return this;
     }
 
@@ -289,4 +313,8 @@ public class Var<T> extends AbstractVar<T> {
         return new WeakVar<>(this);
     }
 
+    @Override
+    public String toString() {
+        return Objects.toString(value);
+    }
 }

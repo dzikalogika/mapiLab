@@ -3,6 +3,8 @@ package app.model;
 import app.model.input.Keyboard;
 import app.model.input.Mouse;
 import app.model.variable.Fun;
+import app.model.variable.NumberVar;
+import app.model.variable.Playground;
 import app.model.variable.Var;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
@@ -10,11 +12,8 @@ import org.lwjgl.opengl.GLUtil;
 import suite.suite.Slot;
 import suite.suite.Subject;
 import suite.suite.Suite;
-import suite.suite.action.Action;
-import suite.suite.action.Impression;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.function.Function;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.glfw.GLFW.GLFW_TRUE;
@@ -22,7 +21,7 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
-public class Window {
+public class Window extends Playground {
 
     static Subject windows = Suite.set();
 
@@ -83,7 +82,6 @@ public class Window {
     protected final Mouse mouse = new Mouse();
     protected final Var<Integer> width;
     protected final Var<Integer> height;
-    protected final Var<Object> triggersRoot = Var.create();
 
     public Window(int width, int height) {
         this.width = Var.create(width);
@@ -110,7 +108,6 @@ public class Window {
     }
 
     protected void ready() {}
-    protected void play() {}
 
     public long getGlid() {
         return glid;
@@ -140,19 +137,27 @@ public class Window {
         glfwSetInputMode(glid, GLFW_LOCK_KEY_MODS, lock ? GLFW_TRUE : GLFW_FALSE);
     }
 
-    protected Fun setOn(Subject inputs, Subject outputs, Action action) {
-        return Fun.compose(inputs, outputs.set(triggersRoot), action);
+    public NumberVar pxFromLeft(Subject sub) {
+        return NumberVar.compose(Suite.set("l", width).set("x", sub.direct()), "x * 2 / l - 1");
     }
 
-    protected Fun setOn(Subject inputs, Impression impression) {
-        return Fun.compose(inputs, Suite.set(triggersRoot), impression);
+    public NumberVar pxFromTop(Subject sub) {
+        return NumberVar.compose(Suite.set("l", height).set("x", sub.direct()), "x * -2 / l + 1");
     }
 
-    protected <V> Fun setOn(Subject inputs, Var<V> output, Function<Subject, V> function) {
-        return Fun.compose(inputs, Suite.set(Var.OWN_VALUE, output).set(triggersRoot), s -> Suite.set(Var.OWN_VALUE, function.apply(s)));
+    public NumberVar pxFromRight(Subject sub) {
+        return NumberVar.compose(Suite.set("l", width).set("x", sub.direct()), "x * -2 / l + 1");
     }
 
-//    protected Rectangle createRect(Subject params) {
-//
-//    }
+    public NumberVar pxFromBottom(Subject sub) {
+        return NumberVar.compose(Suite.set("l", height).set("x", sub.direct()), "x * 2 / l - 1");
+    }
+
+    public NumberVar pxWidth(Subject sub) {
+        return NumberVar.compose(Suite.set("l", width).set("x", sub.direct()), "x  / l * 2");
+    }
+
+    public NumberVar pxHeight(Subject sub) {
+        return NumberVar.compose(Suite.set("l", height).set("x", sub.direct()), "x  / l * 2");
+    }
 }

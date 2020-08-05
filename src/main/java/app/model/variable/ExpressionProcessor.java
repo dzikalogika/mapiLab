@@ -165,19 +165,19 @@ public class ExpressionProcessor implements IntProcessor {
             set("sum", (Action)Exp::sum);
 
 
-    private Subject variables;
     private Subject functions;
+    private Subject inputs;
+    private Subject outputs;
 
     private Subject actions;
     private StringBuilder builder;
     private State state;
     private Subject rpn;
-    private Subject outputs;
     private boolean emptyValueBuffer;
 
     @Override
     public Subject ready() {
-        variables = Suite.set();
+        inputs = Suite.set();
         functions = Suite.set();
         outputs = Suite.set();
         rpn = Suite.set();
@@ -309,7 +309,9 @@ public class ExpressionProcessor implements IntProcessor {
                     state = State.PENDING;
                 } else if(!Character.isWhitespace(i)) {
                     VarNumber var = new VarNumber(builder.toString());
-                    var = variables.getSaved(var.symbol, var).asExpected();
+                    Subject in = inputs.get(var.symbol);
+                    if(in.settled()) var = in.asExpected();
+                    else if(i != '=') inputs.set(var.symbol, var);
                     rpn.add(var);
                     emptyValueBuffer = false;
                     state = State.PENDING;
@@ -332,7 +334,7 @@ public class ExpressionProcessor implements IntProcessor {
             }
             case SYMBOL -> {
                 VarNumber var = new VarNumber(builder.toString());
-                var = variables.getSaved(var.symbol, var).asExpected();
+                var = inputs.getSaved(var.symbol, var).asExpected();
                 rpn.add(var);
             }
         }
@@ -342,10 +344,10 @@ public class ExpressionProcessor implements IntProcessor {
             }
         }
 //        System.out.println(rpn);
-        return Suite.set(new Exp() {
+        return Suite.set(new Exp(inputs, outputs) {
             @Override
             public Subject play(Subject subject) {
-                for (var v : variables.front().values().filter(VarNumber.class)) {
+                for (var v : inputs.front().values().filter(VarNumber.class)) {
                     v.value = subject.get(v.symbol).orGiven(null);
                 }
                 for (var f : functions.front()) {

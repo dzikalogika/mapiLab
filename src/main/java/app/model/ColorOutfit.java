@@ -1,7 +1,7 @@
 package app.model;
 
 import app.model.variable.Monitor;
-import app.model.variable.Var;
+import app.model.variable.NumberVar;
 import jorg.jorg.Jorg;
 import suite.suite.Suite;
 
@@ -12,24 +12,16 @@ public class ColorOutfit extends GLObject implements Outfit {
 
     public static final Shader shader = Jorg.withRecipe(Shader::form).read(Shader.class.getClassLoader().getResourceAsStream("jorg/colorShader.jorg"));
 
-    private final Var<Float> red;
-    private final Var<Float> green;
-    private final Var<Float> blue;
-    private final Var<Float> alpha;
+    final NumberVar red = NumberVar.create(0);
+    final NumberVar green = NumberVar.create(0);
+    final NumberVar blue = NumberVar.create(0);
+    final NumberVar alpha = NumberVar.create(0);
     private int indicesLength = 0;
     private final int vertexGlid;
     private final int indicesGlid;
 
-    public ColorOutfit(float red, float green, float blue, float alpha) {
-        this(Var.create(red), Var.create(green), Var.create(blue), Var.create(alpha));
-    }
-
-    public ColorOutfit(Var<Float> red, Var<Float> green, Var<Float> blue, Var<Float> alpha) {
+    public ColorOutfit() {
         super(glGenVertexArrays());
-        this.red = red;
-        this.green = green;
-        this.blue = blue;
-        this.alpha = alpha;
 
         vertexGlid = glGenBuffers();
         indicesGlid = glGenBuffers();
@@ -62,11 +54,12 @@ public class ColorOutfit extends GLObject implements Outfit {
     }
 
     public void updateVertex(float[] vertex) {
+        float r = red.getFloat(), g = green.getFloat(), b = blue.getFloat(), a = alpha.getFloat();
         for(int i = 6;i < vertex.length;i += 7) {
-            vertex[i] = alpha.get();
-            vertex[i-1] = blue.get();
-            vertex[i-2] = green.get();
-            vertex[i-3] = red.get();
+            vertex[i] = a;
+            vertex[i-1] = b;
+            vertex[i-2] = g;
+            vertex[i-3] = r;
         }
         glBindBuffer(GL_ARRAY_BUFFER, vertexGlid);
         glBufferData(GL_ARRAY_BUFFER, vertex, GL_STATIC_DRAW);
@@ -85,19 +78,19 @@ public class ColorOutfit extends GLObject implements Outfit {
         glDrawElements(GL_TRIANGLES, indicesLength, GL_UNSIGNED_INT, 0);
     }
 
-    public Var<Float> getRed() {
+    public NumberVar getRed() {
         return red;
     }
 
-    public Var<Float> getGreen() {
+    public NumberVar getGreen() {
         return green;
     }
 
-    public Var<Float> getBlue() {
+    public NumberVar getBlue() {
         return blue;
     }
 
-    public Var<Float> getAlpha() {
+    public NumberVar getAlpha() {
         return alpha;
     }
 }
