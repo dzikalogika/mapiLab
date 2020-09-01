@@ -1,11 +1,11 @@
 rootProject.name = 'lwjgl'
 
 sourceControl {
-    gitRepository(new URI("https://github.com/tost-ring/suite.git")) {
+    gitRepository(new URI("https://github.com/dzikalogika/suite.git")) {
         producesModule("lpo:suite")
     }
 
-    gitRepository(new URI("https://github.com/tost-ring/jorg.git")) {
+    gitRepository(new URI("https://github.com/dzikalogika/jorg.git")) {
         producesModule("lpo:jorg")
     }
 }

@@ -2,10 +2,9 @@ package app.model;
 
 import app.model.input.Keyboard;
 import app.model.input.Mouse;
-import app.model.variable.Fun;
-import app.model.variable.NumberVar;
-import app.model.variable.Playground;
-import app.model.variable.Var;
+import app.model.util.PercentParcel;
+import app.model.util.PixelParcel;
+import app.model.variable.*;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
@@ -50,7 +49,7 @@ public class Window extends Playground {
 //            lastFrame = currentFrame;
 
             glfwPollEvents();
-            for(var s : windows.front()) {
+            for(var s : windows) {
                 Window win = s.asExpected();
                 win.play();
                 if(glfwWindowShouldClose(win.getGlid()))windows.unset(win.getGlid());
@@ -137,27 +136,160 @@ public class Window extends Playground {
         glfwSetInputMode(glid, GLFW_LOCK_KEY_MODS, lock ? GLFW_TRUE : GLFW_FALSE);
     }
 
-    public NumberVar pxFromLeft(Subject sub) {
-        return NumberVar.compose(Suite.set("l", width).set("x", sub.direct()), "x * 2 / l - 1");
+    public static final int DEFAULT = 0;
+    public static final int LEFT = 1;
+    public static final int RIGHT = 2;
+    public static final int TOP = 3;
+    public static final int BOTTOM = 4;
+
+    public PixelParcel px(Object pixels) {
+        return px(pixels, DEFAULT);
     }
 
-    public NumberVar pxFromTop(Subject sub) {
-        return NumberVar.compose(Suite.set("l", height).set("x", sub.direct()), "x * -2 / l + 1");
+    public PixelParcel px(Object pixels, int base) {
+        return new PixelParcel(pixels, base);
     }
 
-    public NumberVar pxFromRight(Subject sub) {
-        return NumberVar.compose(Suite.set("l", width).set("x", sub.direct()), "x * -2 / l + 1");
+    public PercentParcel pc(Object percents) {
+        return pc(percents, DEFAULT);
     }
 
-    public NumberVar pxFromBottom(Subject sub) {
-        return NumberVar.compose(Suite.set("l", height).set("x", sub.direct()), "x * 2 / l - 1");
+    public PercentParcel pc(Object percents, int base) {
+        return new PercentParcel(percents, base);
     }
 
-    public NumberVar pxWidth(Subject sub) {
-        return NumberVar.compose(Suite.set("l", width).set("x", sub.direct()), "x  / l * 2");
+    private static final Exp textExpLeftTop = Exp.compile("a * b / 100");
+    private static final Exp textExpRightBottom = Exp.compile("a - a * b / 100");
+
+    public Text text(Subject sub) {
+        Subject r = Suite.set();
+        for(var s : sub) {
+            switch(s.key().asString()) {
+                case "x":
+                    if(s.assigned(PixelParcel.class)) {
+                        PixelParcel pixelParcel = s.asExpected();
+                        switch (pixelParcel.waybill) {
+                            case DEFAULT, LEFT -> r.set("x", pixelParcel.ware);
+                            case RIGHT -> r.set("x", NumberVar.sub(Suite.add(width).add(pixelParcel.ware)));
+                        }
+                    } else if(s.assigned(PercentParcel.class)) {
+                        PercentParcel percentParcel = s.asExpected();
+                        switch (percentParcel.waybill) {
+                            case DEFAULT, LEFT -> r.set("x", NumberVar.compose(
+                                    Suite.set("a", width).set("b", percentParcel.ware), textExpLeftTop));
+                            case RIGHT -> r.set("x", NumberVar.compose(
+                                    Suite.set("a", width).set("b", percentParcel.ware), textExpRightBottom));
+                        }
+                    }
+                    break;
+                case "y":
+                    if(s.assigned(PixelParcel.class)) {
+                        PixelParcel pixelParcel = s.asExpected();
+                        switch (pixelParcel.waybill) {
+                            case DEFAULT, TOP -> r.set("y", pixelParcel.ware);
+                            case BOTTOM -> r.set("y", NumberVar.sub(Suite.add(height).add(pixelParcel.ware)));
+                        }
+                    } else if(s.assigned(PercentParcel.class)) {
+                        PercentParcel percentParcel = s.asExpected();
+                        switch (percentParcel.waybill) {
+                            case DEFAULT, TOP -> r.set("y", NumberVar.compose(
+                                    Suite.set("a", height).set("b", percentParcel.ware), textExpLeftTop));
+                            case BOTTOM -> r.set("y", NumberVar.compose(
+                                    Suite.set("a", height).set("b", percentParcel.ware), textExpRightBottom));
+                        }
+                    }
+                    break;
+                default:
+                    r.inset(s);
+            }
+        }
+        r.put("pw", width).put("ph", height);
+        return Text.form(r);
     }
 
-    public NumberVar pxHeight(Subject sub) {
-        return NumberVar.compose(Suite.set("l", height).set("x", sub.direct()), "x  / l * 2");
+    private static final Exp rectExpLeftBottom = Exp.compile("a * 2 / b - 1");
+    private static final Exp rectExpRightTop = Exp.compile("a * -2 / b + 1");
+    private static final Exp rectExpWidthHeight = Exp.compile("a / b * 2");
+    private static final Exp rectExpPercentLeftBottom = Exp.compile("a / 50 - 1");
+    private static final Exp rectExpPercentRightTop = Exp.compile("1 - a / 50");
+    private static final Exp rectExpPercentWidthHeight = Exp.compile("a / 50");
+
+    public Rectangle rect(Subject sub) {
+        Subject r = Suite.set();
+        for(var s : sub) {
+            switch(s.key().asString()) {
+                case "x":
+                    if(s.assigned(PixelParcel.class)) {
+                        PixelParcel pixelParcel = s.asExpected();
+                        switch (pixelParcel.waybill) {
+                            case DEFAULT, LEFT -> r.set("x", NumberVar.compose(
+                                    Suite.set("a", pixelParcel.ware).set("b", width), rectExpLeftBottom));
+                            case RIGHT -> r.set("x", NumberVar.compose(
+                                    Suite.set("a", pixelParcel.ware).set("b", width), rectExpRightTop));
+                        }
+                    } else if(s.assigned(PercentParcel.class)) {
+                        PercentParcel percentParcel = s.asExpected();
+                        switch (percentParcel.waybill) {
+                            case DEFAULT, LEFT -> r.set("x", NumberVar.compose(
+                                    Suite.set("a", percentParcel.ware), rectExpPercentLeftBottom));
+                            case RIGHT -> r.set("x", NumberVar.compose(
+                                    Suite.set("a", percentParcel.ware), rectExpPercentRightTop));
+                        }
+                    }
+                    break;
+                case "y":
+                    if(s.assigned(PixelParcel.class)) {
+                        PixelParcel pixelParcel = s.asExpected();
+                        switch (pixelParcel.waybill) {
+                            case DEFAULT, TOP -> r.set("y", NumberVar.compose(
+                                    Suite.set("a", pixelParcel.ware).set("b", height), rectExpRightTop));
+                            case BOTTOM -> r.set("y", NumberVar.compose(
+                                    Suite.set("a", pixelParcel.ware).set("b", height), rectExpLeftBottom));
+                        }
+                    } else if(s.assigned(PercentParcel.class)) {
+                        PercentParcel percentParcel = s.asExpected();
+                        switch (percentParcel.waybill) {
+                            case DEFAULT, BOTTOM -> r.set("y", NumberVar.compose(
+                                    Suite.set("a", percentParcel.ware), rectExpPercentLeftBottom));
+                            case TOP -> r.set("y", NumberVar.compose(
+                                    Suite.set("a", percentParcel.ware), rectExpPercentRightTop));
+                        }
+                    }
+                    break;
+                case "w":
+                    if(s.assigned(PixelParcel.class)) {
+                        PixelParcel pixelParcel = s.asExpected();
+                        switch (pixelParcel.waybill) {
+                            case DEFAULT -> r.set("w", NumberVar.compose(
+                                    Suite.set("a", pixelParcel.ware).set("b", width), rectExpWidthHeight));
+                        }
+                    } else if(s.assigned(PercentParcel.class)) {
+                        PercentParcel percentParcel = s.asExpected();
+                        switch (percentParcel.waybill) {
+                            case DEFAULT -> r.set("w", NumberVar.compose(
+                                    Suite.set("a", percentParcel.ware), rectExpPercentWidthHeight));
+                        }
+                    }
+                    break;
+                case "h":
+                    if(s.assigned(PixelParcel.class)) {
+                        PixelParcel pixelParcel = s.asExpected();
+                        switch (pixelParcel.waybill) {
+                            case DEFAULT -> r.set("h", NumberVar.compose(
+                                    Suite.set("a", pixelParcel.ware).set("b", height), rectExpWidthHeight));
+                        }
+                    } else if(s.assigned(PercentParcel.class)) {
+                        PercentParcel percentParcel = s.asExpected();
+                        switch (percentParcel.waybill) {
+                            case DEFAULT -> r.set("h", NumberVar.compose(
+                                    Suite.set("a", percentParcel.ware), rectExpPercentWidthHeight));
+                        }
+                    }
+                    break;
+                default:
+                    r.inset(s);
+            }
+        }
+        return Rectangle.form(r);
     }
 }

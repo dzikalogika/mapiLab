@@ -17,23 +17,13 @@ public class Monitor implements ValueConsumer<Object>, ValueProducer<Boolean> {
 
     public static Monitor compose(boolean pressed, Subject components, Impression impression) {
         Monitor monitor = new Monitor();
-        Fun fun = monitor.intent(components, impression);
+        Fun fun = monitor.intent(ValueProducer.prepareComponents(components, monitor), impression);
         if(pressed) fun.press(true);
         return monitor;
     }
 
     public static Monitor compose(boolean pressed, Subject components) {
         return Monitor.compose(pressed, components, s -> {});
-    }
-
-    public boolean release() {
-        if (detections.settled()) {
-            Subject d = detections;
-            detections = Suite.set();
-            d.front().values().filter(Fun.class).forEach(Fun::execute);
-            return true;
-        }
-        return false;
     }
 
     public Fun intent(Subject inputs, Subject outputs, Action action) {
@@ -66,11 +56,21 @@ public class Monitor implements ValueConsumer<Object>, ValueProducer<Boolean> {
         return fun;
     }
 
-    public void attachInstant(Fun fun) {
-        detections.unset(fun);
-        intentInputs.unset(fun);
-        instantInputs.set(fun);
-        if(fun.detection)fun.execute();
+    public boolean release() {
+        if (detections.settled()) {
+            detections.values().filter(Fun.class).forEach(Fun::execute);
+            detections = Suite.set();
+            return true;
+        }
+        return false;
+    }
+
+    public Boolean get() {
+        return release();
+    }
+
+    public Boolean get(Fun fun) {
+        return release();
     }
 
     @Override
@@ -82,7 +82,7 @@ public class Monitor implements ValueConsumer<Object>, ValueProducer<Boolean> {
             boolean pressOutputs = detections.desolated();
             detections.put(fun);
             if(pressOutputs) {
-                for(var s : outputs.front()) {
+                for(var s : outputs) {
                     WeakReference<Fun> ref = s.asExpected();
                     Fun f = ref.get();
                     if(f != null && f != fun && f.press(false)) return true;
@@ -95,6 +95,13 @@ public class Monitor implements ValueConsumer<Object>, ValueProducer<Boolean> {
     @Override
     public void set(Object value, Fun fun) {
         detections.unset(fun);
+    }
+
+    public void attachInstant(Fun fun) {
+        detections.unset(fun);
+        intentInputs.unset(fun);
+        instantInputs.set(fun);
+        if(fun.detection)fun.execute();
     }
 
     @Override
@@ -113,34 +120,24 @@ public class Monitor implements ValueConsumer<Object>, ValueProducer<Boolean> {
         detections.unset(fun);
     }
 
-    public Boolean get() {
-        if (detections.settled()) {
-            Subject d = detections;
-            detections = Suite.set();
-            d.front().values().filter(Fun.class).forEach(Fun::execute);
-            return true;
-        }
-        return false;
-    }
-
-    public Boolean get(Fun fun) {
-        return get();
-    }
-
     @Override
-    public void attachOutput(Fun fun) {
-        if(detections.settled()) fun.detection = true;
+    public boolean attachOutput(Fun fun) {
         outputs.put(new WeakReference<>(fun));
+        return detections.settled();
     }
 
     @Override
     public void detachOutput(Fun fun) {
-        for(var s : outputs.front()) {
+        for(var s : outputs) {
             WeakReference<Fun> ref = s.asExpected();
             Fun f = ref.get();
             if(f == null || f == fun) {
                 outputs.unset(ref);
             }
         }
+    }
+
+    public Subject getDetections() {
+        return detections;
     }
 }

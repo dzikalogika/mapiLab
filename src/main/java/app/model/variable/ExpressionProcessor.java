@@ -145,6 +145,7 @@ public class ExpressionProcessor implements IntProcessor {
     }
 
     private static final ActionProfile attribution = new InfixActionProfile(0, ExpressionProcessor::attribution, "=");
+    private static final ActionProfile postAttribution = new InfixActionProfile(0, ExpressionProcessor::postAttribution, "->");
     private static final ActionProfile maximum = new InfixActionProfile(1, ExpressionProcessor::maximum, "|");
     private static final ActionProfile minimum = new InfixActionProfile(1, ExpressionProcessor::minimum, "&");
     private static final ActionProfile addition = new InfixActionProfile(2, ExpressionProcessor::addition, "+");
@@ -174,6 +175,7 @@ public class ExpressionProcessor implements IntProcessor {
     private State state;
     private Subject rpn;
     private boolean emptyValueBuffer;
+    private int automaticOutput;
 
     @Override
     public Subject ready() {
@@ -184,6 +186,7 @@ public class ExpressionProcessor implements IntProcessor {
         actions = Suite.set();
         state = State.PENDING;
         emptyValueBuffer = true;
+        automaticOutput = 0;
         return Suite.set();
     }
 
@@ -262,6 +265,11 @@ public class ExpressionProcessor implements IntProcessor {
                             actions.unset(s.key().direct());
                         }
                     }
+                    if(rpn.recent().direct() != attribution) {
+                        VarNumber var = new VarNumber("" + automaticOutput++);
+                        outputs.put(var.symbol, var);
+                        rpn.add(var).add(postAttribution);
+                    }
                     emptyValueBuffer = true;
                 } else if(i == ';') {
                     int brackets = 0;
@@ -276,10 +284,10 @@ public class ExpressionProcessor implements IntProcessor {
                     }
                     actions.add(SpecialSymbol.SPLINE);
                     emptyValueBuffer = true;
-                } else if(i == '`') {
+                }/* else if(i == '`') {
                     builder = new StringBuilder();
                     state = State.SYMBOL;
-                } else if(!Character.isWhitespace(i)) {
+                }*/ else if(!Character.isWhitespace(i)) {
                     throw new ProcessorException();
                 }
                 break;
@@ -343,14 +351,19 @@ public class ExpressionProcessor implements IntProcessor {
                 rpn.add(s.direct());
             }
         }
+        if(rpn.recent().direct() != attribution) {
+            VarNumber var = new VarNumber("" + automaticOutput);
+            outputs.put(var.symbol, var);
+            rpn.add(var).add(postAttribution);
+        }
 //        System.out.println(rpn);
         return Suite.set(new Exp(inputs, outputs) {
             @Override
             public Subject play(Subject subject) {
-                for (var v : inputs.front().values().filter(VarNumber.class)) {
+                for (var v : inputs.values().filter(VarNumber.class)) {
                     v.value = subject.get(v.symbol).orGiven(null);
                 }
-                for (var f : functions.front()) {
+                for (var f : functions) {
                     String funName = f.key().asString();
                     Subject s1 = subject.get(funName);
                     if (s1.settled()) f.asGiven(FunctionProfile.class).action = s1.asExpected();
@@ -362,7 +375,7 @@ public class ExpressionProcessor implements IntProcessor {
                 }
                 Subject bracketStack = Suite.set();
                 Subject result = Suite.set();
-                for (var su : rpn.front()) {
+                for (var su : rpn) {
                     if (su.assigned(Number.class)) {
                         result.add(su.direct());
                     } else if (su.assigned(ActionProfile.class)) {
@@ -377,16 +390,15 @@ public class ExpressionProcessor implements IntProcessor {
                                 p.addAt(Slot.PRIME, s1.direct());
                             }
                             p = su.asGiven(FunctionProfile.class).action.play(p);
-                            result.addAll(p.front().values());
+                            result.addAll(p.values());
                         } else {
                             su.asGiven(ActionProfile.class).action.play(result);
                         }
                     } else if(su.direct() == SpecialSymbol.OPEN_BRACKET){
-                        bracketStack.insetAll(result.recent().front());
+                        bracketStack.inset(result.recent());
                     }
                 }
-                return outputs.front().advance(so -> Suite.set(so.key().direct(), so.asGiven(VarNumber.class).doubleValue())).
-                        toSubject();
+                return outputs.map(so -> Suite.set(so.key().direct(), so.asGiven(VarNumber.class).doubleValue())).set();
             }
         });
     }
@@ -430,6 +442,11 @@ public class ExpressionProcessor implements IntProcessor {
         double a = s.takeAt(Slot.RECENT).asDouble();
         VarNumber var = s.recent().asExpected();
         var.value = a;
+    }
+
+    protected static void postAttribution(Subject s) {
+        VarNumber var = s.takeAt(Slot.RECENT).asExpected();
+        var.value = s.takeAt(Slot.RECENT).asDouble();
     }
 
     protected static void inversion(Subject s) {

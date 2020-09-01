@@ -1,11 +1,6 @@
 package app.model;
 
-import app.model.variable.Fun;
-import app.model.variable.Monitor;
-import app.model.variable.Var;
 import jorg.jorg.Jorg;
-import org.joml.Matrix4f;
-import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBTTFontinfo;
 import org.lwjgl.stb.STBTTAlignedQuad;
@@ -35,7 +30,7 @@ public class TextGraphic {
         return sized.getDone(s, () -> TextGraphic.form(Suite.set("size", s * 32))).asExpected();
     }
 
-    private static final Shader defaultShader = Jorg.withRecipe(Shader::form).read(Shader.class.getClassLoader().getResourceAsStream("jorg/textShader.jorg"));
+    static final Shader defaultShader = Jorg.withRecipe(Shader::form).read(Shader.class.getClassLoader().getResourceAsStream("jorg/textShader.jorg"));
 
     private final Subject chars = Suite.set();
     private final String fontPath;
@@ -50,28 +45,18 @@ public class TextGraphic {
     private final float lineGap;
     private final int size;
 
-    private final Var<Shader> shader;
-    private final Var<Integer> projectionWidth;
-    private final Var<Integer> projectionHeight;
-    private final Monitor projectionMonitor;
-
     public static TextGraphic form(Subject sub) {
-        Shader shader = sub.get("shader").orGiven(defaultShader);
         String font = sub.get("font").orGiven("ttf/trebuc.ttf");
         int fontSize = Suite.from(sub).get("size").orGiven(24);
 
-        return new TextGraphic(shader, font, fontSize, 800, 600);
+        return new TextGraphic(font, fontSize);
     }
 
-    public TextGraphic(Shader shader, String fontPath, int fontSize, int projectionWidth, int projectionHeight) {
-        this.shader = Var.create(shader);
+    public TextGraphic(String fontPath, int fontSize) {
         this.fontPath = fontPath;
         this.size = fontSize;
         this.bitmapWidth = 1024;
         this.bitmapHeight = 512;
-        this.projectionWidth = Var.create(projectionWidth);
-        this.projectionHeight = Var.create(projectionHeight);
-        this.projectionMonitor = Monitor.compose(true, Suite.set(this.projectionWidth).set(this.projectionHeight).set(this.shader));
 
         try {
             trueType = IOUtil.ioResourceToByteBuffer(fontPath, 512 * 1024);
@@ -152,34 +137,12 @@ public class TextGraphic {
         return size;
     }
 
-    public Var<Shader> getShader() {
-        return shader;
-    }
+    public void render(String text, float x, float y, float size, float height) {
 
-    public Var<Integer> getProjectionWidth() {
-        return projectionWidth;
-    }
-
-    public Var<Integer> getProjectionHeight() {
-        return projectionHeight;
-    }
-
-    public void render(String text, float x, float y, double scale, float redColor, float greenColor,
-                       float blueColor, float alphaColor) {
-
+        float scale = size / this.size;
         float[] X = new float[]{x};
         float[] Y = new float[]{y};
-        Shader shader = this.shader.get();
-        int width = projectionWidth.get();
-        int height = projectionHeight.get();
-        float s = (float)scale;
 
-        shader.use();
-        if(projectionMonitor.release()) {
-            shader.set("projection", new Matrix4f().ortho2D(0f, width, 0f, height));
-        }
-        glActiveTexture(GL_TEXTURE0);
-        shader.set("textColor", redColor, greenColor, blueColor);
         glBindVertexArray(vao);
 
         STBTTAlignedQuad quad = STBTTAlignedQuad.create();
@@ -197,11 +160,11 @@ public class TextGraphic {
             stbtt_GetBakedQuad(charTex.getBuffer(), bitmapWidth, bitmapHeight, charTex.getBufferOffset(),
                     X, Y, quad, true);
 
-            float x0 = scale(quad.x0(), xRef, s);
-            float x1 = scale(quad.x1(), xRef, s);
-            float y0 = height - scale(quad.y0(), yRef, s);
-            float y1 = height - scale(quad.y1(), yRef, s);
-            X[0] = scale(X[0], xRef, s);
+            float x0 = scale(quad.x0(), xRef, scale);
+            float x1 = scale(quad.x1(), xRef, scale);
+            float y0 = height - scale(quad.y0(), yRef, scale);
+            float y1 = height - scale(quad.y1(), yRef, scale);
+            X[0] = scale(X[0], xRef, scale);
 
             float[] vertices = new float[] {
                     x0, y0, quad.s0(), quad.t0(),

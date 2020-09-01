@@ -1,9 +1,9 @@
 package app.model.variable;
 
-import jorg.processor.ProcessorException;
 import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.action.Action;
+import suite.suite.util.Fluid;
 
 import java.lang.ref.WeakReference;
 import java.util.Objects;
@@ -16,7 +16,7 @@ public class Fun {
 
     public static final Const SELF = new Const();
 
-    public static Fun compose(Subject inputs, Subject outputs, Action transition) {
+    public static Fun compose(Fluid inputs, Fluid outputs, Action transition) {
         Fun fun = new Fun(inputs, outputs, transition);
         if(fun.detection) fun.press(false);
         return fun;
@@ -56,14 +56,14 @@ public class Fun {
         return fun;
     }
 
-    public static Fun express(Subject inputs, Subject outputs, String expression) {
-        try {
-            Fun fun = new Fun(inputs, outputs, Exp.compile(expression));
-            if(fun.detection) fun.press(false);
-            return fun;
-        } catch (ProcessorException e) {
-            throw new RuntimeException(e);
-        }
+    public static Fun express(Fluid inputs, Fluid outputs, Exp expression) {
+        Fun fun = new Fun(inputs, outputs, expression);
+        if(fun.detection) fun.press(false);
+        return fun;
+    }
+
+    public static Fun express(Fluid inputs, Fluid outputs, String expression) {
+        return express(inputs, outputs, Exp.compile(expression));
     }
 
     Subject inputs;
@@ -71,8 +71,9 @@ public class Fun {
     Action transition;
     boolean detection;
 
-    public Fun(Subject inputs, Subject outputs, Action transition) {
-        this.inputs = inputs.front().advance(s -> {
+    public Fun(Fluid inputs, Fluid outputs, Action transition) {
+        Subject press = Suite.set(Boolean.class, false);
+        this.inputs = inputs.map(s -> {
             ValueProducer<?> vp;
             if(s.assigned(ValueProducer.class)) {
                 vp = s.asExpected();
@@ -81,11 +82,11 @@ public class Fun {
             } else {
                 vp = new Constant<>(s.direct());
             }
-            vp.attachOutput(this);
+            if(vp.attachOutput(this)) press.set(Boolean.class, true);
             return Suite.set(s.key().direct(), vp);
-        }).toSubject();
+        }).set();
         this.outputs = Suite.set();
-        for(var s : outputs.front()) {
+        for(var s : outputs) {
             if(s.assigned(ValueConsumer.class)) {
                 ValueConsumer<?> vc = s.asExpected();
                 if(vc instanceof Var && ((Var<?>) vc).cycleTest(this))
@@ -95,23 +96,24 @@ public class Fun {
             }
         }
         this.transition = transition;
+        if(press.get(Boolean.class).asExpected())press(false);
     }
 
     public void execute() {
-        Subject inputParams = inputs.front().advance(s -> Suite.set(s.key().direct(), s.asGiven(ValueProducer.class).get(this))).toSubject();
+        Subject inputParams = inputs.map(s -> Suite.set(s.key().direct(), s.asGiven(ValueProducer.class).get(this))).set();
         if(detection) {
             detection = false;
             Subject outputParams = transition.play(inputParams);
-            outputParams.front().forEach(s -> {
+            outputParams.forEach(s -> {
                 var key = s.key().direct();
                 var output = outputs.get(key);
                 if (output.settled()) {
                     WeakReference<ValueConsumer<?>> ref = output.asExpected();
-                    ValueConsumer<?> v = ref.get();
-                    if(v == null) {
+                    ValueConsumer<?> vc = ref.get();
+                    if(vc == null) {
                         outputs.unset(key);
                     } else {
-                        v.set(s.asExpected(), this);
+                        vc.set(s.asExpected(), this);
                     }
                 }
             });
@@ -121,7 +123,7 @@ public class Fun {
     public boolean press(boolean direct) {
         if(detection) return false;
         if(direct)detection = true;
-        for(var s : outputs.front()) {
+        for(var s : outputs) {
             WeakReference<ValueConsumer<?>> ref = s.asExpected();
             ValueConsumer<?> var = ref.get();
             if(var != null && var.press(this)) return true;
@@ -130,7 +132,7 @@ public class Fun {
     }
 
     public void detach() {
-        inputs.front().keys().forEach(this::detachInput);
+        inputs.keys().forEach(this::detachInput);
         inputs = Suite.set();
         outputs = Suite.set();
     }
@@ -140,7 +142,7 @@ public class Fun {
     }
 
     public void detachOutputVar(Var<?> output) {
-        for (var s : outputs.front()){
+        for (var s : outputs){
             WeakReference<ValueConsumer<?>> ref = s.asExpected();
             ValueConsumer<?> var = ref.get();
             if(var == null || var.equals(output)) {
@@ -159,7 +161,7 @@ public class Fun {
     }
 
     public void detachInputVar(Var<?> input) {
-        for (var s : inputs.front()){
+        for (var s : inputs){
             if(s.direct().equals(input)) {
                 detachInput(s.key().direct());
             }
@@ -168,7 +170,7 @@ public class Fun {
 
     public void reduce(boolean execute) {
         boolean allConstants = true;
-        for(Object o : inputs.front().values()) {
+        for(Object o : inputs.values()) {
             if(!(o instanceof Constant)) {
                 allConstants = false;
                 break;
@@ -182,7 +184,7 @@ public class Fun {
     }
 
     boolean cycleTest(Fun fun) {
-        for(var s : outputs.front()) {
+        for(var s : outputs) {
             WeakReference<ValueConsumer<?>> ref = s.asExpected();
             ValueConsumer<?> v = ref.get();
             if(v == null){

@@ -14,7 +14,7 @@ public class WeakVar<T> implements ValueProducer<T> {
     }
 
     @Override
-    public void attachOutput(Fun fun) {}
+    public boolean attachOutput(Fun fun) {return false;}
 
     @Override
     public void detachOutput(Fun fun) {}

@@ -4,8 +4,6 @@ import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.action.Action;
 
-import java.util.function.Function;
-
 public class NumberVar extends Var<Number> {
 
     public static NumberVar create() {
@@ -22,20 +20,40 @@ public class NumberVar extends Var<Number> {
 
     public static NumberVar compose(Number value, Subject components, Action recipe, Object resultKey) {
         NumberVar composite = new NumberVar(value, false);
-        Fun.compose(prepareComponents(components, composite), Suite.set(resultKey, composite), recipe);
+        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(resultKey, composite), recipe);
         return composite;
     }
 
     public static NumberVar compose(Subject components, Action recipe, Object resultKey) {
         NumberVar composite = new NumberVar(null, false);
-        Fun.compose(prepareComponents(components, composite), Suite.set(resultKey, composite), recipe).press(true);
+        Fun.compose(ValueProducer.prepareComponents(components, composite),
+                Suite.set(resultKey, composite), recipe).press(true);
+        return composite;
+    }
+
+    public static NumberVar compose(Subject components, Action recipe) {
+        NumberVar composite = new NumberVar(null, false);
+        BeltFun.compose(ValueProducer.prepareComponents(components, composite),
+                Suite.add(composite), recipe).press(true);
+        return composite;
+    }
+
+    public static NumberVar compose(Subject components, Exp expression) {
+        NumberVar composite = new NumberVar(null, false);
+        BeltFun.express(ValueProducer.prepareComponents(components, composite),
+                Suite.add(composite), expression).press(true);
         return composite;
     }
 
     public static NumberVar compose(Subject components, String expression) {
         NumberVar composite = new NumberVar(null, false);
-        Fun.express(prepareComponents(components, composite), Suite.set("$0", composite), "$0=" + expression).press(true);
+        BeltFun.express(ValueProducer.prepareComponents(components, composite),
+                Suite.add(composite), expression).press(true);
         return composite;
+    }
+
+    public static NumberVar sub(Subject components) {
+        return compose(components, Exp::sub);
     }
 
     public NumberVar(Number value, boolean instant) {

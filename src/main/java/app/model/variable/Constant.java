@@ -14,8 +14,13 @@ public class Constant<T> implements ValueProducer<T> {
     }
 
     @Override
-    public void attachOutput(Fun fun) {}
+    public boolean attachOutput(Fun fun) {return false;}
 
     @Override
     public void detachOutput(Fun fun) {}
+
+    @Override
+    public String toString() {
+        return "<" + value + ">";
+    }
 }

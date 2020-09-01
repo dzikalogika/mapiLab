@@ -17,14 +17,18 @@ public abstract class Exp implements Action {
         this.outputs = outputs;
     }
 
-    public static Exp compile(String expressionString) throws ProcessorException {
+    public static Exp compile(String expressionString) {
         ExpressionProcessor processor = new ExpressionProcessor();
         processor.ready();
-        for(PrimitiveIterator.OfInt it = expressionString.codePoints().iterator(); it.hasNext();) {
-            processor.advance(it.nextInt());
+        try {
+            for (PrimitiveIterator.OfInt it = expressionString.codePoints().iterator(); it.hasNext(); ) {
+                processor.advance(it.nextInt());
+            }
+            Subject result = processor.finish();
+            return result.asExpected();
+        } catch (ProcessorException pe) {
+            throw new RuntimeException(pe);
         }
-        Subject result = processor.finish();
-        return result.asExpected();
     }
 
     public static Subject sin(Subject s) {
@@ -37,7 +41,7 @@ public abstract class Exp implements Action {
 
     public static Subject max(Subject s) {
         double max = s.asDouble();
-        for(Number n : s.front().values().filter(Number.class)) {
+        for(Number n : s.values().filter(Number.class)) {
             max = Math.max(max, n.doubleValue());
         }
         return Suite.set(max);
@@ -45,7 +49,7 @@ public abstract class Exp implements Action {
 
     public static Subject min(Subject s) {
         double min = s.asDouble();
-        for(Number n : s.front().values().filter(Number.class)) {
+        for(Number n : s.values().filter(Number.class)) {
             min = Math.min(min, n.doubleValue());
         }
         return Suite.set(min);
@@ -53,9 +57,13 @@ public abstract class Exp implements Action {
 
     public static Subject sum(Subject s) {
         double sum = 0.0;
-        for(Number n : s.front().values().filter(Number.class)) {
+        for(Number n : s.values().filter(Number.class)) {
             sum += n.doubleValue();
         }
         return Suite.set(sum);
+    }
+
+    public static Subject sub(Subject s) {
+        return Suite.set(s.asDouble() - s.recent().asDouble());
     }
 }

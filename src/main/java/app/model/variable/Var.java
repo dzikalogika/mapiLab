@@ -1,6 +1,5 @@
 package app.model.variable;
 
-import jorg.processor.ProcessorException;
 import suite.suite.Query;
 import suite.suite.Subject;
 import suite.suite.Suite;
@@ -18,11 +17,6 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
      *
      * Jeśli każdy stan zmiennych wyższych ma zostać zarejestrowany, należy użyć implementacji instant = true.
      */
-
-    public static class Const {}
-
-    public static final Const OWN_VALUE = new Const();
-    public static final Const SELF = new Const();
 
     public static<V> Var<V> create() {
         return new Var<>(null, false);
@@ -44,44 +38,34 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
 
     public static<V> Var<V> compose(V value, Subject components, Action recipe, Object resultKey) {
         Var<V> composite = new Var<>(value, false);
-        Fun.compose(prepareComponents(components, composite), Suite.set(resultKey, composite), recipe);
+        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(resultKey, composite), recipe);
         return composite;
     }
 
     public static<V> Var<V> compose(Subject components, Action recipe, Object resultKey) {
         Var<V> composite = new Var<>(null, false);
-        Fun.compose(prepareComponents(components, composite), Suite.set(resultKey, composite), recipe).press(true);
+        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(resultKey, composite), recipe).press(true);
         return composite;
     }
 
 
     public static<V> Var<V> compose(V value, Subject components, Function<Subject, V> recipe) {
         Var<V> composite = new Var<>(value, false);
-        Fun.compose(prepareComponents(components, composite), Suite.set(OWN_VALUE, composite), s -> Suite.set(OWN_VALUE, recipe.apply(s)));
+        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(OWN_VALUE, composite), s -> Suite.set(OWN_VALUE, recipe.apply(s)));
         return composite;
     }
 
     public static<V> Var<V> compose(Subject components, Function<Subject, V> recipe) {
         Var<V> composite = new Var<>(null, false);
-        Fun.compose(prepareComponents(components, composite), Suite.set(OWN_VALUE, composite),
+        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(OWN_VALUE, composite),
                 s -> Suite.set(OWN_VALUE, recipe.apply(s))).press(true);
         return composite;
     }
 
     public static<V> Var<V> compose(Subject components, String expression) {
         Var<V> composite = new Var<>(null, false);
-        Fun.express(prepareComponents(components, composite), Suite.set("$0", composite), "$0=" + expression).press(true);
+        BeltFun.express(ValueProducer.prepareComponents(components, composite), Suite.add(composite), expression).press(true);
         return composite;
-    }
-
-    static Subject prepareComponents(Subject components, Var<?> self) {
-        return components.front().advance(s -> {
-            if(s.direct() == OWN_VALUE)
-                return Suite.set(s.key().direct(), self.weak());
-            else if(s.direct() == SELF)
-                return Suite.set(s.key().direct(), new Constant<>(self));
-            else return s;
-        }).toSubject();
     }
 
     public static Query doubleFrom(Subject s, Object key) {
@@ -100,11 +84,8 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
         Var<Double> width = Var.create(800.0);
         Var<Double> ys = Var.create(0.0);
         Var<Double> x = Var.compose(Suite.set("w", width).set("s", ys).set("fun", (Action) s -> {
-            System.out.println(s);
             return s;
         }), "fun((400 + s) * 2 / w - 1)");
-        Monitor m = new Monitor();
-        m.instant(Suite.set(x), System.out::println);
         ys.set(2.0);
 //        try {
 //            Exp exp = Exp.compile("c = f o o(a, -+b%); b = 30; a = 50");
@@ -167,12 +148,9 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
     }
 
     public T get() {
-        if(detections != null) {
-            if (detections.settled()) {
-                Subject d = detections;
-                detections = Suite.set();
-                d.front().values().filter(Fun.class).forEach(Fun::execute);
-            }
+        if(detections != null && detections.settled()) {
+            detections.values().filter(Fun.class).forEach(Fun::execute);
+            detections = Suite.set();
         }
         return value;
     }
@@ -183,7 +161,7 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
 
     public void set(T value) {
         this.value = value;
-        for(var s : outputs.front()) {
+        for(var s : outputs) {
             WeakReference<Fun> ref = s.asExpected();
             Fun fun = ref.get();
             if(fun != null) {
@@ -195,10 +173,10 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
     public void set(T value, Fun fun) {
         this.value = value;
         if(detections != null)detections.unset(fun); // Jeśli wywołana w gałęzi równoległej, oznacz jako wykonana.
-        for(var s : outputs.front()) {
+        for(var s : outputs) {
             WeakReference<Fun> ref = s.asExpected();
             Fun f = ref.get();
-            if(f != null &&f != fun) {
+            if(f != null && f != fun) {
                 f.press(true);
             }
         }
@@ -212,7 +190,7 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
             boolean pressOutputs = detections.desolated();
             detections.put(fun);
             if(pressOutputs) {
-                for(var s : outputs.front()) {
+                for(var s : outputs) {
                     WeakReference<Fun> ref = s.asExpected();
                     Fun f = ref.get();
                     if(f != null && f != fun && f.press(false)) return true;
@@ -222,13 +200,13 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
         }
     }
 
-    public void attachOutput(Fun fun) {
-        if(detections != null && detections.settled()) fun.detection = true;
+    public boolean attachOutput(Fun fun) {
         outputs.put(new WeakReference<>(fun));
+        return detections != null && detections.settled();
     }
 
     public void detachOutput(Fun fun) {
-        for(var s : outputs.front()) {
+        for(var s : outputs) {
             WeakReference<Fun> ref = s.asExpected();
             Fun f = ref.get();
             if(f == null || f == fun) {
@@ -247,7 +225,7 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
     }
 
     public void detachInputs() {
-        inputs.front().keys().filter(Fun.class).forEach(this::detachInput);
+        inputs.keys().filter(Fun.class).forEach(this::detachInput);
 
     }
 
@@ -261,7 +239,7 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
     }
 
     boolean cycleTest(Fun fun) {
-        for(var s : outputs.front()) {
+        for(var s : outputs) {
             WeakReference<Fun> ref = s.asExpected();
             Fun f = ref.get();
             if(f == null){
@@ -302,10 +280,16 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
         return this;
     }
 
-    public<V extends T> Var<T> assign(Subject sub, boolean reduce) {
-        Fun fun = new Fun(sub, Suite.set(Var.OWN_VALUE, this), s -> Suite.set(Var.OWN_VALUE, s.direct()));
-        if(reduce)fun.reduce(true);
-        else fun.press(true);
+    public<V extends T> Var<T> assign(Subject sub) {
+        if(sub.settled()) {
+            Fun fun = new Fun(sub, Suite.set(Var.OWN_VALUE, this), s -> Suite.set(Var.OWN_VALUE, s.direct()));
+            fun.reduce(true);
+        }
+        return this;
+    }
+
+    public Var<T> express(Subject components, String expression) {
+        Fun.express(ValueProducer.prepareComponents(components, this), Suite.set("", this), expression).press(true);
         return this;
     }
 
@@ -315,6 +299,12 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
 
     @Override
     public String toString() {
-        return Objects.toString(value);
+        if(detections != null && detections.settled())
+            return "(" + value + ")";
+        else return "<" + value + ">";
+    }
+
+    public Subject getInputs() {
+        return inputs;
     }
 }

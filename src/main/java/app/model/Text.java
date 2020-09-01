@@ -1,81 +1,109 @@
 package app.model;
 
+import app.model.variable.Monitor;
+import app.model.variable.NumberVar;
 import app.model.variable.Var;
+import org.joml.Matrix4f;
 import suite.suite.Subject;
+import suite.suite.Suite;
+
+import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
+import static org.lwjgl.opengl.GL13.glActiveTexture;
 
 public class Text {
 
     public static Text form(Subject sub) {
-        Var<String> content = Var.from(sub, "text", String.class).asExpected();
-        Var<Float> x = Var.floatFrom(sub, "x").asExpected();
-        Var<Float> y = Var.floatFrom(sub, "y").asExpected();
-        Var<Double> s = Var.doubleFrom(sub, "s").orGiven(new Var<>(24.0, false));
-        Var<Float> r = Var.floatFrom(sub, "r").orGiven(new Var<>(0f, false));
-        Var<Float> g = Var.floatFrom(sub, "g").orGiven(new Var<>(0f, false));
-        Var<Float> b = Var.floatFrom(sub, "b").orGiven(new Var<>(0f, false));
-        Var<Float> a = Var.floatFrom(sub, "a").orGiven(new Var<>(0f, false));
-        Var<TextGraphic> graphicModel = Var.from(sub, "graphic", TextGraphic.class).
-                orGiven(new Var<>(TextGraphic.getForSize(s.get()), false));
-        return new Text(content, x, y, s, r, g, b, a, graphicModel);
+        Text text = new Text();
+        text.content.assign(sub.get("text"));
+        text.xPosition.assign(sub.get("x"));
+        text.yPosition.assign(sub.get("y"));
+        text.size.assign(sub.get("s"));
+        text.redColor.assign(sub.get("r"));
+        text.greenColor.assign(sub.get("g"));
+        text.blueColor.assign(sub.get("b"));
+        text.alphaColor.assign(sub.get("a"));
+        Subject s;
+        if((s = sub.get("pw")).settled()) text.projectionWidth.assign(s);
+        else throw new RuntimeException("Projection width (pw) param is obligatory");
+        if((s = sub.get("ph")).settled()) text.projectionHeight.assign(s);
+        else throw new RuntimeException("Projection height (ph) param is obligatory");
+
+        if((s = sub.get("shader")).settled()) text.shader.assign(s);
+        else text.shader.set(TextGraphic.defaultShader);
+        if((s = sub.get("graphic")).settled()) text.graphicModel.assign(s);
+        else text.graphicModel.set(TextGraphic.getForSize(text.size.getDouble()));
+        return text;
     }
 
-    Var<String> content;
-    Var<Float> xPosition;
-    Var<Float> yPosition;
-    Var<Double> size;
-    Var<Float> redColor;
-    Var<Float> greenColor;
-    Var<Float> blueColor;
-    Var<Float> alphaColor;
-    Var<TextGraphic> graphicModel;
+    final Var<String> content = Var.create("");
+    final NumberVar xPosition = NumberVar.create(0);
+    final NumberVar yPosition = NumberVar.create(0);
+    final NumberVar size = NumberVar.create(24);
+    final NumberVar redColor = NumberVar.create(0);
+    final NumberVar greenColor = NumberVar.create(0);
+    final NumberVar blueColor = NumberVar.create(0);
+    final NumberVar alphaColor = NumberVar.create(1);
+    final Var<Shader> shader = Var.create();
+    final Var<TextGraphic> graphicModel = Var.create();
 
-    public Text(Var<String> content, Var<Float> xPosition, Var<Float> yPosition, Var<Double> size, Var<Float> redColor,
-                Var<Float> greenColor, Var<Float> blueColor, Var<Float> alphaColor, Var<TextGraphic> graphicModel) {
-        this.content = content;
-        this.xPosition = xPosition;
-        this.yPosition = yPosition;
-        this.size = size;
-        this.redColor = redColor;
-        this.greenColor = greenColor;
-        this.blueColor = blueColor;
-        this.alphaColor = alphaColor;
-        this.graphicModel = graphicModel;
+    final NumberVar projectionWidth = NumberVar.create(800);
+    final NumberVar projectionHeight = NumberVar.create(600);
+
+    final Monitor projectionMonitor;
+    final Monitor colorMonitor;
+
+    public Text() {
+        projectionMonitor = Monitor.compose(true, Suite.set(shader).set(projectionWidth).set(projectionHeight));
+        colorMonitor = Monitor.compose(true, Suite.set(shader).set(redColor).set(greenColor).set(blueColor).set(alphaColor));
     }
 
     public void render() {
-        graphicModel.get().render(content.get(), xPosition.get(), yPosition.get(), size.get() / graphicModel.get().getSize(),
-                redColor.get(), greenColor.get(), blueColor.get(), alphaColor.get());
+        Shader sh = shader.get();
+
+        sh.use();
+
+        if(projectionMonitor.release()) {
+            sh.set("projection", new Matrix4f().ortho2D(0f, projectionWidth.getFloat(), 0f, projectionHeight.getFloat()));
+        }
+        glActiveTexture(GL_TEXTURE0);
+        if(colorMonitor.release()) {
+            sh.set("textColor", redColor.getFloat(), greenColor.getFloat(), blueColor.getFloat());
+        }
+
+        TextGraphic textGraphic = graphicModel.get();
+        textGraphic.render(content.get(), xPosition.getFloat(), yPosition.getFloat(),
+                size.getFloat(), projectionHeight.getFloat());
     }
 
     public Var<String> getContent() {
         return content;
     }
 
-    public Var<Float> getXPosition() {
+    public NumberVar getxPosition() {
         return xPosition;
     }
 
-    public Var<Float> getYPosition() {
+    public NumberVar getyPosition() {
         return yPosition;
     }
 
-    public Var<Double> getSize() {
+    public NumberVar getSize() {
         return size;
     }
 
-    public Var<Float> getRedColor() {
+    public NumberVar getRedColor() {
         return redColor;
     }
 
-    public Var<Float> getGreenColor() {
+    public NumberVar getGreenColor() {
         return greenColor;
     }
 
-    public Var<Float> getBlueColor() {
+    public NumberVar getBlueColor() {
         return blueColor;
     }
 
-    public Var<Float> getAlphaColor() {
+    public NumberVar getAlphaColor() {
         return alphaColor;
     }
 

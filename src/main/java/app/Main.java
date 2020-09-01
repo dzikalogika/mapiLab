@@ -4,12 +4,7 @@ import app.model.*;
 import app.model.input.Keyboard;
 import app.model.input.Mouse;
 import app.model.variable.*;
-import org.joml.Vector3f;
-import suite.suite.Subject;
 import suite.suite.Suite;
-import suite.suite.action.Action;
-
-import java.util.Objects;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL45.*;
@@ -20,11 +15,10 @@ public class Main extends Window {
         Window.play(Suite.set(Window.class, Main.class));
     }
 
-    TextGraphic text;
     Var<String> str;
     Var<String> space;
     Var<String> button;
-    Text text1;
+    Text text;
     Rectangle rect;
 
     static float deltaTime = 0.0f;	// Time between current frame and last frame
@@ -39,9 +33,6 @@ public class Main extends Window {
 
     @Override
     protected void ready() {
-        text = TextGraphic.form(Suite.set());
-        text.getProjectionWidth().assign(width);
-        text.getProjectionHeight().assign(height);
 
         str = Var.compose(Suite.
                         set(keyboard.getKey(GLFW_KEY_UP).getPressed()).
@@ -58,16 +49,17 @@ public class Main extends Window {
                         suppress((s1, s2) -> s2 == GLFW_RELEASE)),
                 s -> "." + s.asString());
 
-        text1 = Text.form(Suite.set("x", 30).set("y", 50).set("size", 50).set("text", "text").set("r", 200).set("b", 200));
+        text = text(Suite.set("x", pc(50)).set("y", pc(50)).set("size", 50).set("text", "t").
+                set("r", 200).set("b", 200));
 
-        instant(Suite.set(keyboard.getCharEvent()).set(text1.getContent().weak()), text1.getContent(), s -> {
+        instant(Suite.set(keyboard.getCharEvent()).set(text.getContent().weak()), text.getContent(), s -> {
             Keyboard.CharEvent e = s.asExpected();
             String content = s.recent().asString();
             return new StringBuilder(content).appendCodePoint(e.getCodepoint()).toString();
         });
 
-        Fun t1 = instant(Suite.set(text1.getContent().weak()).set(keyboard.getKey(GLFW_KEY_BACKSPACE).
-                getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), text1.getContent(), s -> {
+        Fun t1 = instant(Suite.set(text.getContent().weak()).set(keyboard.getKey(GLFW_KEY_BACKSPACE).
+                getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), text.getContent(), s -> {
             String content = s.asString();
             return content.length() > 0 ? content.substring(0, content.length() - 1) : "";
         });
@@ -86,13 +78,12 @@ public class Main extends Window {
         NumberVar g = NumberVar.create(1);
         NumberVar b = NumberVar.create(1);
         NumberVar xs = NumberVar.create(400);
-        NumberVar ys = NumberVar.create(300);
-        NumberVar w = NumberVar.create(300);
-        NumberVar h = NumberVar.create(300);
+        NumberVar ys = NumberVar.create(50);
+        NumberVar w = NumberVar.create(800);
+        NumberVar h = NumberVar.create(10);
 
-        rect = Rectangle.form(Suite.set("x", pxFromLeft(Suite.set(xs))).set("y", pxFromTop(Suite.set(ys))).
-                set("w", pxWidth(Suite.set(w))).set("h", pxHeight(Suite.set(h))).set("r", r).set("g", g).set("b", b).set("a", .5f));
-//        rect = rectangle(Suite.set("x", Unit.pixels(400)))
+        rect = rect(Suite.set("x", px(xs)).set("y", px(ys)).
+                set("w", px(w)).set("h", pc(h)).set("r", r).set("g", g).set("b", b).set("a", .5f));
 
         instant(Suite.set(keyboard.getKey(GLFW_KEY_SPACE).getState().select((s1, s2) -> s2 == GLFW_PRESS)), Suite.
                 set("r", r).set("g", g).set("b", b), s -> {
@@ -112,7 +103,7 @@ public class Main extends Window {
                 s -> s.asInt() - 10);
 
         instant(Suite.set(w.weak()).set(keyboard.getKey(GLFW_KEY_W).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), w,
-                s -> keyboard.getKey(GLFW_KEY_LEFT_SHIFT).getPressed().get() ? s.asInt() - 10 : s.asInt() + 10);
+                s -> keyboard.getKey(GLFW_KEY_LEFT_SHIFT).getPressed().get() ? s.asInt() + 10 : s.asInt() - 10);
 
     }
 
@@ -124,12 +115,11 @@ public class Main extends Window {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        text.render(str.get(), 30f, 300f, 1., 0.5f, 0.8f, 0.2f, 0f);
-        text.render(space.get(), 30f, 400f, 1., 0.5f, 0.8f, 0.2f, 0f);
-        text1.render();
+        text.render();
         rect.print();
 
         glfwSwapBuffers(getGlid());
+//        glfwSetWindowShouldClose(getGlid(), true);
     }
 
     static void processInput(long window) {
