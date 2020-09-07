@@ -189,24 +189,24 @@ public class TextGraphic {
         return (rel - ref) * scale + ref;
     }
 
-//    private float getStringWidth(STBTTFontinfo info, String text, int fontHeight) {
-//        int width = 0;
+    public float getStringWidth(String text, float fontHeight) {
+        int width = 0;
 //        int lastCp = 0;
-//        int[] advancedWidth = new int[1];
-//        int[] leftSideBearing = new int[1];
-//        Iterable<Integer> it = () -> text.chars().iterator();
-//        for(int cp : it) {
-//            stbtt_GetCodepointHMetrics(info, cp, advancedWidth, leftSideBearing);
-//            width += advancedWidth[0];
+        int[] advancedWidth = new int[1];
+        int[] leftSideBearing = new int[1];
+        Iterable<Integer> it = () -> text.chars().iterator();
+        for(int cp : it) {
+            stbtt_GetCodepointHMetrics(fontInfo, cp, advancedWidth, leftSideBearing);
+            width += advancedWidth[0];
 //            if(isKerningEnabled()) {
 //                if(lastCp != 0) {
 //                    width += stbtt_GetCodepointKernAdvance(info, lastCp, cp);
 //                }
 //                lastCp = cp;
 //            }
-//        }
-//
-//        return width * stbtt_ScaleForPixelHeight(info, fontHeight);
-//    }
+        }
+
+        return width * stbtt_ScaleForPixelHeight(fontInfo, fontHeight);
+    }
 
 }

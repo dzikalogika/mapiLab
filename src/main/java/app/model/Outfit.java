@@ -11,10 +11,10 @@ public interface Outfit {
 
     static Outfit form(Subject sub) {
         ColorOutfit colorOutfit = new ColorOutfit();
-        colorOutfit.red.assign(sub.get("r"));
-        colorOutfit.green.assign(sub.get("g"));
-        colorOutfit.blue.assign(sub.get("b"));
-        colorOutfit.alpha.assign(sub.get("a"));
+        colorOutfit.red.assign(sub.get(Color.RED));
+        colorOutfit.green.assign(sub.get(Color.GREEN));
+        colorOutfit.blue.assign(sub.get(Color.BLUE));
+        colorOutfit.alpha.assign(sub.get(Color.ALPHA));
         return colorOutfit;
     }
 }

@@ -1,11 +1,17 @@
 package app.model.util;
 
+import java.util.Objects;
+
 public class PixelParcel {
     public Object ware;
-    public int waybill;
+    public Object waybill;
 
-    public PixelParcel(Object ware, int waybill) {
+    public PixelParcel(Object ware, Object waybill) {
         this.ware = ware;
         this.waybill = waybill;
+    }
+
+    public String getWaybillStr() {
+        return Objects.toString(waybill);
     }
 }

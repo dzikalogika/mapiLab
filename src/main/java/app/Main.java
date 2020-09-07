@@ -2,7 +2,6 @@ package app;
 
 import app.model.*;
 import app.model.input.Keyboard;
-import app.model.input.Mouse;
 import app.model.variable.*;
 import suite.suite.Suite;
 
@@ -15,11 +14,7 @@ public class Main extends Window {
         Window.play(Suite.set(Window.class, Main.class));
     }
 
-    Var<String> str;
-    Var<String> space;
-    Var<String> button;
-    Text text;
-    Rectangle rect;
+
 
     static float deltaTime = 0.0f;	// Time between current frame and last frame
     static float lastFrame = 0.0f; // Time of last frame
@@ -33,24 +28,27 @@ public class Main extends Window {
 
     @Override
     protected void ready() {
+        Text text;
 
-        str = Var.compose(Suite.
-                        set(keyboard.getKey(GLFW_KEY_UP).getPressed()).
-                        set(keyboard.getKey(GLFW_KEY_LEFT).getPressed()).
-                        set(keyboard.getKey(GLFW_KEY_DOWN).getPressed()).
-                        set(keyboard.getKey(GLFW_KEY_RIGHT).getPressed()),
-                s -> (s.getAt(0).asGiven(Boolean.class) ? "^" : "_") +
-                        (s.getAt(1).asGiven(Boolean.class) ? "<" : "_") +
-                        (s.getAt(2).asGiven(Boolean.class) ? "v" : "_") +
-                        (s.getAt(3).asGiven(Boolean.class) ? ">" : "_"));
+        NumberVar textH = NumberVar.emit(50);
 
-        space = Var.compose("_@/\"",
-                Suite.set(Var.OWN_VALUE).set(keyboard.getKey(GLFW_KEY_SPACE).getState().
-                        suppress((s1, s2) -> s2 == GLFW_RELEASE)),
-                s -> "." + s.asString());
+        NumberVar r = NumberVar.emit(1);
+        NumberVar g = NumberVar.emit(1);
+        NumberVar b = NumberVar.emit(1);
+        NumberVar xs = NumberVar.emit(50);
+        NumberVar ys = NumberVar.emit(50);
+        NumberVar w = NumberVar.emit(60);
+        NumberVar h = NumberVar.emit(60);
 
-        text = text(Suite.set("x", pc(50)).set("y", pc(50)).set("size", 50).set("text", "t").
-                set("r", 200).set("b", 200));
+        append(text = text(Suite.set(Pos.X, pc(50)).set(Pos.Y, pc(50)).set(Dim.H, textH).set("text", "W").
+                set(Color.R, 200).set(Color.BLUE, 200)));
+
+        append(frame(Suite.set(Side.L, px(50)).set(Side.R, px(200, Side.R)).set(Side.T, px(50)).set(Side.B, px(50, Side.B)).
+                set(Color.R, 0.2).set(Color.G, 0.5).set(Color.B, 0.8).set("components",
+                    Suite.add(Suite.set(Printable.class, Rectangle.class).set(Pos.X, pc(xs)).set(Pos.Y, pc(ys)).set(Dim.W, px(w)).set(Dim.H, px(h)).
+                        set(Color.R, r).set(Color.G, g).set(Color.B, b).set("face", 0.4)))));
+
+        instant(Suite.set(keyboard.getKey(GLFW_KEY_Z).getPressed().select((b0, b1) -> b1)).set(textH.weak()), textH, s -> s.recent().asInt() + 10);
 
         instant(Suite.set(keyboard.getCharEvent()).set(text.getContent().weak()), text.getContent(), s -> {
             Keyboard.CharEvent e = s.asExpected();
@@ -69,22 +67,6 @@ public class Main extends Window {
             s.get(Fun.SELF).asGiven(Fun.class).detach();
         });
 
-        button = Var.compose("", Suite.set(mouse.getButton(GLFW_MOUSE_BUTTON_1).getState()), s -> {
-            Mouse.ButtonEvent e = s.asExpected();
-            return e.getPosition().toString() + "  " + e.getAction() + "   " + e.getModifiers();
-        });
-
-        NumberVar r = NumberVar.create(1);
-        NumberVar g = NumberVar.create(1);
-        NumberVar b = NumberVar.create(1);
-        NumberVar xs = NumberVar.create(400);
-        NumberVar ys = NumberVar.create(50);
-        NumberVar w = NumberVar.create(800);
-        NumberVar h = NumberVar.create(10);
-
-        rect = rect(Suite.set("x", px(xs)).set("y", px(ys)).
-                set("w", px(w)).set("h", pc(h)).set("r", r).set("g", g).set("b", b).set("a", .5f));
-
         instant(Suite.set(keyboard.getKey(GLFW_KEY_SPACE).getState().select((s1, s2) -> s2 == GLFW_PRESS)), Suite.
                 set("r", r).set("g", g).set("b", b), s -> {
             return Suite.set("r", (float)Math.random()).set("g", (float)Math.random()).set("b", (float)Math.random());
@@ -97,29 +79,21 @@ public class Main extends Window {
                 s -> s.asInt() + 10);
 
         instant(Suite.set(ys.weak()).set(keyboard.getKey(GLFW_KEY_DOWN).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), ys,
-                s -> s.asInt() + 10);
+                s -> s.asInt() - 10);
 
         instant(Suite.set(ys.weak()).set(keyboard.getKey(GLFW_KEY_UP).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), ys,
-                s -> s.asInt() - 10);
+                s -> s.asInt() + 10);
 
         instant(Suite.set(w.weak()).set(keyboard.getKey(GLFW_KEY_W).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), w,
                 s -> keyboard.getKey(GLFW_KEY_LEFT_SHIFT).getPressed().get() ? s.asInt() + 10 : s.asInt() - 10);
 
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     }
 
     @Override
     public void play() {
         super.play();
         processInput(getGlid());
-
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        text.render();
-        rect.print();
-
-        glfwSwapBuffers(getGlid());
-//        glfwSetWindowShouldClose(getGlid(), true);
     }
 
     static void processInput(long window) {

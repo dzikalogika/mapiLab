@@ -4,6 +4,7 @@ import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.action.Action;
 import suite.suite.action.Impression;
+import suite.suite.util.Fluid;
 
 import java.lang.ref.WeakReference;
 import java.util.function.Function;
@@ -15,9 +16,9 @@ public class Monitor implements ValueConsumer<Object>, ValueProducer<Boolean> {
     Subject outputs = Suite.set();
     Subject detections = Suite.set();
 
-    public static Monitor compose(boolean pressed, Subject components, Impression impression) {
+    public static Monitor compose(boolean pressed, Fluid components, Impression impression) {
         Monitor monitor = new Monitor();
-        Fun fun = monitor.intent(ValueProducer.prepareComponents(components, monitor), impression);
+        Fun fun = monitor.intent(ValueProducer.prepareComponents(components, monitor).set(), impression);
         if(pressed) fun.press(true);
         return monitor;
     }

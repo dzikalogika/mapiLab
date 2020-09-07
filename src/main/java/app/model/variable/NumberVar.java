@@ -3,57 +3,97 @@ package app.model.variable;
 import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.action.Action;
+import suite.suite.util.Fluid;
 
-public class NumberVar extends Var<Number> {
+import java.util.function.Function;
 
-    public static NumberVar create() {
-        return new NumberVar(0, false);
+public final class NumberVar extends Var<Number> {
+
+    public static NumberVar emit() {
+        return new NumberVar(null, false);
     }
 
-    public static NumberVar create(Number value) {
+    public static NumberVar emit(Number value) {
         return new NumberVar(value, false);
     }
 
-    public static NumberVar create(Number value, boolean instant) {
+    public static NumberVar emit(Number value, boolean instant) {
         return new NumberVar(value, instant);
     }
 
-    public static NumberVar compose(Number value, Subject components, Action recipe, Object resultKey) {
+    public static NumberVar assigned(Object that) {
+        NumberVar v = new NumberVar(null, false);
+        Fun.assign(that, v).press(true);
+        return v;
+    }
+
+    public static NumberVar compound(Number value, Fluid components, Action recipe, Object resultKey) {
         NumberVar composite = new NumberVar(value, false);
         Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(resultKey, composite), recipe);
         return composite;
     }
 
-    public static NumberVar compose(Subject components, Action recipe, Object resultKey) {
+    public static NumberVar compound(Fluid components, Action recipe, Object resultKey) {
         NumberVar composite = new NumberVar(null, false);
-        Fun.compose(ValueProducer.prepareComponents(components, composite),
-                Suite.set(resultKey, composite), recipe).press(true);
+        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(resultKey, composite), recipe).press(true);
         return composite;
     }
 
-    public static NumberVar compose(Subject components, Action recipe) {
-        NumberVar composite = new NumberVar(null, false);
-        BeltFun.compose(ValueProducer.prepareComponents(components, composite),
-                Suite.add(composite), recipe).press(true);
+
+    public static NumberVar compound(Number value, Fluid components, Function<Subject, Number> recipe) {
+        NumberVar composite = new NumberVar(value, false);
+        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(OWN_VALUE, composite),
+                s -> Suite.set(OWN_VALUE, recipe.apply(s)));
         return composite;
     }
 
-    public static NumberVar compose(Subject components, Exp expression) {
+    public static NumberVar compound(Fluid components, Function<Subject, Number> recipe) {
+        NumberVar composite = new NumberVar(null, false);
+        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(OWN_VALUE, composite),
+                s -> Suite.set(OWN_VALUE, recipe.apply(s))).press(true);
+        return composite;
+    }
+
+    public static NumberVar expressed(Fluid components, Exp expression) {
         NumberVar composite = new NumberVar(null, false);
         BeltFun.express(ValueProducer.prepareComponents(components, composite),
                 Suite.add(composite), expression).press(true);
         return composite;
     }
 
-    public static NumberVar compose(Subject components, String expression) {
+    public static NumberVar expressed(Fluid components, String expression) {
         NumberVar composite = new NumberVar(null, false);
         BeltFun.express(ValueProducer.prepareComponents(components, composite),
                 Suite.add(composite), expression).press(true);
         return composite;
     }
 
-    public static NumberVar sub(Subject components) {
-        return compose(components, Exp::sub);
+    public static NumberVar expressed(Number value, Fluid components, Action recipe) {
+        NumberVar composite = new NumberVar(value, false);
+        BeltFun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(composite), recipe);
+        return composite;
+    }
+
+    public static NumberVar expressed(Fluid components, Action recipe) {
+        NumberVar composite = new NumberVar(null, false);
+        BeltFun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(composite), recipe).press(true);
+        return composite;
+    }
+
+    public static NumberVar expressed(String e, Object ... params) {
+        return expressed(Exp.params(params), e);
+    }
+
+    public static NumberVar expressed(String e, Fluid params) {
+        return expressed(params, e);
+    }
+
+    public static NumberVar add(Fluid components) {
+        return expressed(components, Exp::add);
+    }
+
+    public static NumberVar difference(Fluid components) {
+        return expressed(components, Exp::sub);
     }
 
     public NumberVar(Number value, boolean instant) {

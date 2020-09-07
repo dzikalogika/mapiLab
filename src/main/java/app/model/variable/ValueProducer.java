@@ -2,6 +2,7 @@ package app.model.variable;
 
 import suite.suite.Subject;
 import suite.suite.Suite;
+import suite.suite.util.Fluid;
 
 public interface ValueProducer<T> {
 
@@ -17,13 +18,13 @@ public interface ValueProducer<T> {
         return this;
     }
 
-    static Subject prepareComponents(Subject components, ValueProducer<?> self) {
+    static Fluid prepareComponents(Fluid components, ValueProducer<?> self) {
         return components.map(s -> {
             if(s.direct() == OWN_VALUE)
                 return Suite.set(s.key().direct(), self.weak());
             else if(s.direct() == SELF)
                 return Suite.set(s.key().direct(), new Constant<>(self));
             else return s;
-        }).set();
+        });
     }
 }

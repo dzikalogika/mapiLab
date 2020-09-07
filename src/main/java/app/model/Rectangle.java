@@ -1,15 +1,14 @@
 package app.model;
 
-import app.model.util.Keys;
+import app.model.util.Generator;
 import app.model.variable.*;
 import suite.sets.Sets;
 import suite.suite.Subject;
 import suite.suite.Suite;
-import suite.suite.action.Action;
 import suite.suite.util.Fluid;
 
 
-public class Rectangle extends Playground {
+public class Rectangle extends Playground implements Printable {
 
     public static final Exp expA = Exp.compile("a, b");
     public static final Exp expB = Exp.compile("a, 2 * b - a");
@@ -19,35 +18,20 @@ public class Rectangle extends Playground {
 
 
 
-    private final NumberVar right = NumberVar.create(.2);
-    private final NumberVar top = NumberVar.create(.2);
-    private final NumberVar left = NumberVar.create(-.2);
-    private final NumberVar bottom = NumberVar.create(-.2);
-    private final Var<Outfit> outfit = Var.create();
+    private final NumberVar right = NumberVar.emit(.2);
+    private final NumberVar top = NumberVar.emit(.2);
+    private final NumberVar left = NumberVar.emit(-.2);
+    private final NumberVar bottom = NumberVar.emit(-.2);
+    private final NumberVar face = NumberVar.emit(0.5);
+    private final Var<Outfit> outfit = SimpleVar.emit();
     private final Subject weakParams = Suite.wonky();
 
     private Monitor vertexMonitor;
 
-    static class Generator {
-
-        static AlphaGenerator alpha() {
-            return new AlphaGenerator();
-        }
-    }
-
-    static class AlphaGenerator implements Action {
-        char alpha = 'a';
-
-        @Override
-        public Subject play(Subject subject) {
-            return Suite.set("" + alpha++, subject.direct());
-        }
-    }
-
     public static boolean applyExp(Subject sub, Fluid in, Fluid out, Exp exp) {
         Subject s;
         if((s = Sets.insec(sub, in)).size() == 2) {
-            BeltFun.express(s.map(Keys.alpha()), out, exp).reduce(true);
+            BeltFun.express(Fluid.engage(Generator.alpha(), s.values()), out, exp).reduce(true);
             return false;
         }
         return true;
@@ -62,20 +46,21 @@ public class Rectangle extends Playground {
         Subject hors = Suite.add(rect.left).add(rect.right);
         Subject vers = Suite.add(rect.bottom).add(rect.top);
 
-        if(applyExp(sub, Suite.set("lx").set("rx"), hors, expA) &&
-                applyExp(sub, Suite.set("lx").set("x"), hors, expB) &&
-                applyExp(sub, Suite.set("lx").set("w"), hors, expC) &&
-                applyExp(sub, Suite.set("rx").set("x"), hors.reverse(), expB) &&
-                applyExp(sub, Suite.set("rx").set("w"), hors.reverse(), expD) &&
-                applyExp(sub, Suite.set("x").set("w"), hors, expE));
+        if(applyExp(sub, Suite.set(Side.LEFT).set(Side.RIGHT), hors, expA) &&
+                applyExp(sub, Suite.set(Side.LEFT).set(Pos.HORIZONTAL_CENTER), hors, expB) &&
+                applyExp(sub, Suite.set(Side.LEFT).set(Dim.WIDTH), hors, expC) &&
+                applyExp(sub, Suite.set(Side.RIGHT).set(Pos.HORIZONTAL_CENTER), hors.reverse(), expB) &&
+                applyExp(sub, Suite.set(Side.RIGHT).set(Dim.WIDTH), hors.reverse(), expD) &&
+                applyExp(sub, Suite.set(Pos.HORIZONTAL_CENTER).set(Dim.WIDTH), hors, expE));
 
-        if(applyExp(sub, Suite.set("by").set("ty"), vers, expA) &&
-                applyExp(sub, Suite.set("by").set("y"), vers, expB) &&
-                applyExp(sub, Suite.set("by").set("h"), vers, expC) &&
-                applyExp(sub, Suite.set("ty").set("y"), vers.reverse(), expB) &&
-                applyExp(sub, Suite.set("ty").set("h"), vers.reverse(), expD) &&
-                applyExp(sub, Suite.set("y").set("h"), vers, expE));
+        if(applyExp(sub, Suite.set(Side.BOTTOM).set(Side.TOP), vers, expA) &&
+                applyExp(sub, Suite.set(Side.BOTTOM).set(Pos.VERTICAL_CENTER), vers, expB) &&
+                applyExp(sub, Suite.set(Side.BOTTOM).set(Dim.HEIGHT), vers, expC) &&
+                applyExp(sub, Suite.set(Side.TOP).set(Pos.VERTICAL_CENTER), vers.reverse(), expB) &&
+                applyExp(sub, Suite.set(Side.TOP).set(Dim.HEIGHT), vers.reverse(), expD) &&
+                applyExp(sub, Suite.set(Pos.VERTICAL_CENTER).set(Dim.HEIGHT), vers, expE));
 
+        rect.face.assign(sub.get("face"));
         if((s = sub.get("outfit")).settled()) rect.outfit.assign(s);
         else rect.outfit.set(Outfit.form(sub));
 
@@ -112,6 +97,7 @@ public class Rectangle extends Playground {
         return outfit;
     }
 
+    @Override
     public void print() {
         if(vertexMonitor.release()) {
             float[] v = new float[4 * 7];
@@ -122,26 +108,30 @@ public class Rectangle extends Playground {
 
     public float[] getVertex(float[] collector, int offset, int stride) {
         int i = offset;
-        float x0 = left.getFloat(), x1 = right.getFloat(), y0 = top.getFloat(), y1 = bottom.getFloat();
+        float x0 = left.getFloat(), x1 = right.getFloat(), y0 = top.getFloat(), y1 = bottom.getFloat(), z = face.getFloat();
         collector[i++] = x1;
-        collector[i] = y0;
-        i += stride - 1;
+        collector[i++] = y0;
+        collector[i] = z;
+        i += stride - 2;
         collector[i++] = x1;
-        collector[i] = y1;
-        i += stride - 1;
+        collector[i++] = y1;
+        collector[i] = z;
+        i += stride - 2;
         collector[i++] = x0;
-        collector[i] = y1;
-        i += stride - 1;
+        collector[i++] = y1;
+        collector[i] = z;
+        i += stride - 2;
         collector[i++] = x0;
-        collector[i] = y0;
+        collector[i++] = y0;
+        collector[i] = z;
         return collector;
     }
 
     public NumberVar getWidth() {
-        return weakParams.getDone("w", () -> NumberVar.compose(Suite.add(right).add(left), Exp::sub)).asExpected();
+        return weakParams.getDone(Dim.WIDTH, () -> NumberVar.expressed(Suite.add(right).add(left), Exp::sub)).asExpected();
     }
 
     public NumberVar getHeight() {
-        return weakParams.getDone("h", () -> NumberVar.compose(Suite.add(top).add(bottom), Exp::sub)).asExpected();
+        return weakParams.getDone(Dim.HEIGHT, () -> NumberVar.expressed(Suite.add(top).add(bottom), Exp::sub)).asExpected();
     }
 }

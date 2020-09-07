@@ -10,12 +10,13 @@ import static org.lwjgl.opengl.GL30.*;
 
 public class ColorOutfit extends GLObject implements Outfit {
 
-    public static final Shader defaultShader = Jorg.withRecipe(Shader::form).read(Shader.class.getClassLoader().getResourceAsStream("jorg/colorShader.jorg"));
+    public static final Shader defaultShader = Jorg.withRecipe(Shader::form).read(
+            Shader.class.getClassLoader().getResourceAsStream("jorg/colorShader.jorg"));
 
-    final NumberVar red = NumberVar.create(0);
-    final NumberVar green = NumberVar.create(0);
-    final NumberVar blue = NumberVar.create(0);
-    final NumberVar alpha = NumberVar.create(0);
+    final NumberVar red = NumberVar.emit(0.5);
+    final NumberVar green = NumberVar.emit(0.5);
+    final NumberVar blue = NumberVar.emit(0.5);
+    final NumberVar alpha = NumberVar.emit(1);
 
     private int indicesLength = 0;
     private final int vertexGlid;

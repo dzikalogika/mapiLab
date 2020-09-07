@@ -1,10 +1,13 @@
 package app.model.variable;
 
+import app.model.util.Generator;
 import jorg.processor.ProcessorException;
 import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.action.Action;
+import suite.suite.util.Fluid;
 
+import java.util.Arrays;
 import java.util.PrimitiveIterator;
 
 public abstract class Exp implements Action {
@@ -29,6 +32,10 @@ public abstract class Exp implements Action {
         } catch (ProcessorException pe) {
             throw new RuntimeException(pe);
         }
+    }
+
+    public static Fluid params(Object ... objects) {
+        return Fluid.engage(Generator.alpha(), Arrays.asList(objects));
     }
 
     public static Subject sin(Subject s) {
@@ -65,5 +72,9 @@ public abstract class Exp implements Action {
 
     public static Subject sub(Subject s) {
         return Suite.set(s.asDouble() - s.recent().asDouble());
+    }
+
+    public static Subject add(Subject s) {
+        return Suite.set(s.asDouble() + s.recent().asDouble());
     }
 }
