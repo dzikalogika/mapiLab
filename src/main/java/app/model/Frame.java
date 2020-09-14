@@ -4,12 +4,15 @@ import app.model.util.PercentParcel;
 import app.model.util.PixelParcel;
 import app.model.variable.NumberVar;
 import suite.suite.Subject;
+import suite.suite.Suite;
 
 public interface Frame {
 
+    Object COMPONENTS = new Object();
+
     static InterFrame form(Subject sub) {
         InterFrame frame = new InterFrame();
-        frame.parent = sub.get(InterFrame.class).asExpected();
+        frame.parent = sub.get(Frame.class).asExpected();
         frame.rect = sub.get(Rectangle.class).asExpected();
 
         return frame;
@@ -18,12 +21,15 @@ public interface Frame {
     NumberVar windowWidth();
     NumberVar windowHeight();
 
-    void append(Printable component);
-    default void append(Subject sub) {
-        Class<?> subtype = sub.get(Printable.class).orGiven(null);
-        if(subtype == Rectangle.class) append(rect(sub));
-        if(subtype == Text.class) append(text(sub));
-        if(subtype == InterFrame.class) append(frame(sub));
+    void append(Object key, Printable component);
+    default void append(Object key, Subject sketch) {
+        Class<?> subtype = sketch.get(AbstractSketch.MODEL).orGiven(null);
+        if(subtype == Rectangle.class) append(key, rect(sketch));
+        if(subtype == Text.class) append(key, text(sketch));
+        if(subtype == InterFrame.class) append(key, frame(sketch));
+    }
+    default void append(Subject sketch) {
+        append(sketch, sketch);
     }
 
     default PixelParcel px(Object pixels) {

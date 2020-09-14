@@ -35,18 +35,40 @@ public class Main extends Window {
         NumberVar r = NumberVar.emit(1);
         NumberVar g = NumberVar.emit(1);
         NumberVar b = NumberVar.emit(1);
-        NumberVar xs = NumberVar.emit(50);
-        NumberVar ys = NumberVar.emit(50);
+        NumberVar xs = NumberVar.emit(0);
+        NumberVar ys = NumberVar.emit(0);
         NumberVar w = NumberVar.emit(60);
         NumberVar h = NumberVar.emit(60);
 
+        append(InterFrame.sketch().
+                left(50).
+                right(200).
+                top(50).
+                bottom(50).
+                redColor(0.2).
+                greenColor(0.5).
+                blueColor(0.8).
+                component(Rectangle.sketch().
+                        horizontalCenter(xs).
+                        verticalCenter(ys).
+                        width(w).
+                        height(h).
+                        redColor(r).
+                        greenColor(g).
+                        blueColor(b).
+                        set("face", 0.4)).
+                component(Rectangle.sketch().
+                        horizontalCenter(NumberVar.sum(xs, 100, ys)).
+                        verticalCenter(ys).
+                        width(w).
+                        height(h).
+                        redColor(NumberVar.difference(1, r)).
+                        greenColor(g).
+                        blueColor(b).
+                        set("face", 0.4)));
+
         append(text = text(Suite.set(Pos.X, pc(50)).set(Pos.Y, pc(50)).set(Dim.H, textH).set("text", "W").
                 set(Color.R, 200).set(Color.BLUE, 200)));
-
-        append(frame(Suite.set(Side.L, px(50)).set(Side.R, px(200, Side.R)).set(Side.T, px(50)).set(Side.B, px(50, Side.B)).
-                set(Color.R, 0.2).set(Color.G, 0.5).set(Color.B, 0.8).set("components",
-                    Suite.add(Suite.set(Printable.class, Rectangle.class).set(Pos.X, pc(xs)).set(Pos.Y, pc(ys)).set(Dim.W, px(w)).set(Dim.H, px(h)).
-                        set(Color.R, r).set(Color.G, g).set(Color.B, b).set("face", 0.4)))));
 
         instant(Suite.set(keyboard.getKey(GLFW_KEY_Z).getPressed().select((b0, b1) -> b1)).set(textH.weak()), textH, s -> s.recent().asInt() + 10);
 

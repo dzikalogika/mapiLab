@@ -1,8 +1,10 @@
 package app.model;
 
 import app.model.util.Generator;
+import app.model.util.PixelParcel;
 import app.model.variable.*;
 import suite.sets.Sets;
+import suite.suite.SolidSubject;
 import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.util.Fluid;
@@ -37,6 +39,13 @@ public class Rectangle extends Playground implements Printable {
         return true;
     }
 
+    public static Sketch<?> sketch(Subject s) {
+        return new Sketch<>(s);
+    }
+
+    public static Sketch<?> sketch() {
+        return new Sketch<>(Suite.set());
+    }
 
     public static Rectangle form(Subject sub) {
 
@@ -134,4 +143,138 @@ public class Rectangle extends Playground implements Printable {
     public NumberVar getHeight() {
         return weakParams.getDone(Dim.HEIGHT, () -> NumberVar.expressed(Suite.add(top).add(bottom), Exp::sub)).asExpected();
     }
+
+    public static class Sketch<T extends Sketch<T>> extends AbstractSketch<T> {
+
+        public Sketch(Subject s) {
+            super(s);
+            set(AbstractSketch.MODEL, Rectangle.class);
+        }
+
+        public T left(Object var) {
+            set(Side.LEFT, new PixelParcel(var, Side.LEFT));
+            return self();
+        }
+
+        public T right(Object var) {
+            set(Side.RIGHT, new PixelParcel(var, Side.RIGHT));
+            return self();
+        }
+
+        public T bottom(Object var) {
+            set(Side.BOTTOM, new PixelParcel(var, Side.BOTTOM));
+            return self();
+        }
+
+        public T top(Object var) {
+            set(Side.TOP, new PixelParcel(var, Side.TOP));
+            return self();
+        }
+
+        public T horizontalCenter(Object var) {
+            set(Pos.HORIZONTAL_CENTER, new PixelParcel(var, Pos.HORIZONTAL_CENTER));
+            return self();
+        }
+
+        public T verticalCenter(Object var) {
+            set(Pos.VERTICAL_CENTER, new PixelParcel(var, Pos.VERTICAL_CENTER));
+            return self();
+        }
+
+        public T width(Object var) {
+            set(Dim.WIDTH, new PixelParcel(var, null));
+            return self();
+        }
+
+        public T height(Object var) {
+            set(Dim.HEIGHT, new PixelParcel(var, null));
+            return self();
+        }
+
+        public T left(Object var, Unit unit) {
+            set(Side.LEFT, unit.parcel(var));
+            return self();
+        }
+
+        public T right(Object var, Unit unit) {
+            set(Side.RIGHT, unit.parcel(var));
+            return self();
+        }
+
+        public T bottom(Object var, Unit unit) {
+            set(Side.BOTTOM, unit.parcel(var));
+            return self();
+        }
+
+        public T top(Object var, Unit unit) {
+            set(Side.TOP, unit.parcel(var));
+            return self();
+        }
+
+        public T horizontalCenter(Object var, Unit unit) {
+            set(Pos.HORIZONTAL_CENTER, unit.parcel(var));
+            return self();
+        }
+
+        public T verticalCenter(Object var, Unit unit) {
+            set(Pos.VERTICAL_CENTER, unit.parcel(var));
+            return self();
+        }
+
+        public T width(Object var, Unit unit) {
+            set(Dim.WIDTH, unit.parcel(var));
+            return self();
+        }
+
+        public T height(Object var, Unit unit) {
+            set(Dim.HEIGHT, unit.parcel(var));
+            return self();
+        }
+
+        public T left(Object var, Unit unit, Side base) {
+            set(Side.LEFT, unit.parcel(var, base));
+            return self();
+        }
+
+        public T right(Object var, Unit unit, Side base) {
+            set(Side.RIGHT, unit.parcel(var, base));
+            return self();
+        }
+
+        public T bottom(Object var, Unit unit, Side base) {
+            set(Side.BOTTOM, unit.parcel(var, base));
+            return self();
+        }
+
+        public T top(Object var, Unit unit, Side base) {
+            set(Side.TOP, unit.parcel(var, base));
+            return self();
+        }
+
+        public T horizontalCenter(Object var, Unit unit, Side base) {
+            set(Pos.HORIZONTAL_CENTER, unit.parcel(var, base));
+            return self();
+        }
+
+        public T verticalCenter(Object var, Unit unit, Side base) {
+            set(Pos.VERTICAL_CENTER, unit.parcel(var, base));
+            return self();
+        }
+
+        public T redColor(Object var) {
+            set(Color.RED, var);
+            return self();
+        }
+
+        public T greenColor(Object var) {
+            set(Color.GREEN, var);
+            return self();
+        }
+
+        public T blueColor(Object var) {
+            set(Color.BLUE, var);
+            return self();
+        }
+    }
+
 }

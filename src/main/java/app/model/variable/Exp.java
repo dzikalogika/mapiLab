@@ -5,6 +5,7 @@ import jorg.processor.ProcessorException;
 import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.action.Action;
+import suite.suite.util.Cascade;
 import suite.suite.util.Fluid;
 
 import java.util.Arrays;
@@ -46,25 +47,31 @@ public abstract class Exp implements Action {
         return Suite.set(Math.cos(s.asDouble()));
     }
 
-    public static Subject max(Subject s) {
-        double max = s.asDouble();
-        for(Number n : s.values().filter(Number.class)) {
-            max = Math.max(max, n.doubleValue());
-        }
-        return Suite.set(max);
+    public static Subject max(Fluid f) {
+        Cascade<Number> c = f.values().filter(Number.class).cascade();
+        if(c.hasNext()) {
+            double max = c.next().doubleValue();
+            for(Number n : c.toEnd()) {
+                max = Math.max(max, n.doubleValue());
+            }
+            return Suite.set(max);
+        } else return Suite.set();
     }
 
-    public static Subject min(Subject s) {
-        double min = s.asDouble();
-        for(Number n : s.values().filter(Number.class)) {
-            min = Math.min(min, n.doubleValue());
-        }
-        return Suite.set(min);
+    public static Subject min(Fluid f) {
+        Cascade<Number> c = f.values().filter(Number.class).cascade();
+        if(c.hasNext()) {
+            double min = c.next().doubleValue();
+            for(Number n : c.toEnd()) {
+                min = Math.min(min, n.doubleValue());
+            }
+            return Suite.set(min);
+        } else return Suite.set();
     }
 
-    public static Subject sum(Subject s) {
+    public static Subject sum(Fluid f) {
         double sum = 0.0;
-        for(Number n : s.values().filter(Number.class)) {
+        for(Number n : f.values().filter(Number.class)) {
             sum += n.doubleValue();
         }
         return Suite.set(sum);

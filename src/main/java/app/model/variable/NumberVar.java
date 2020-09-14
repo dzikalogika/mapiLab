@@ -88,12 +88,16 @@ public final class NumberVar extends Var<Number> {
         return expressed(params, e);
     }
 
-    public static NumberVar add(Fluid components) {
-        return expressed(components, Exp::add);
+    public static NumberVar add(Object a, Object b) {
+        return expressed(Exp.params(a, b), Exp::add);
     }
 
-    public static NumberVar difference(Fluid components) {
-        return expressed(components, Exp::sub);
+    public static NumberVar sum(Object ... o) {
+        return expressed(Exp.params(o), Exp::sum);
+    }
+
+    public static NumberVar difference(Object a, Object b) {
+        return expressed(Exp.params(a, b), Exp::sub);
     }
 
     public NumberVar(Number value, boolean instant) {

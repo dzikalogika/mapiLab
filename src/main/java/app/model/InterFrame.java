@@ -16,12 +16,19 @@ public class InterFrame implements Frame, Printable{
         InterFrame frame = new InterFrame();
         frame.parent = sub.get(Frame.class).asExpected();
         frame.rect = sub.get(Rectangle.class).asExpected();
-        for(Subject s : sub.at("components").values(Subject.class)) {
-            frame.append(s);
+        for(Subject s : sub.at(COMPONENTS)) {
+            frame.append(s.key().direct(), s.asGiven(Subject.class));
         }
 
-        System.out.println(frame.components);
         return frame;
+    }
+
+    public static Sketch<?> sketch(Subject s) {
+        return new Sketch<>(s);
+    }
+
+    public static Sketch<?> sketch() {
+        return new Sketch<>(Suite.set());
     }
 
     public InterFrame() {
@@ -42,8 +49,9 @@ public class InterFrame implements Frame, Printable{
         components.values(Printable.class).forEach(Printable::print);
     }
 
-    public void append(Printable component) {
-        components.set(component);
+    @Override
+    public void append(Object key, Printable component) {
+        components.set(key, component);
     }
 
     public Text text(Subject sub) {
@@ -96,32 +104,44 @@ public class InterFrame implements Frame, Printable{
                 if(s.assigned(PixelParcel.class)) {
                     PixelParcel pixelParcel = s.asExpected();
                     var wb = pixelParcel.waybill;
-                    if(wb == null || wb == Side.LEFT) r.set(k, NumberVar.expressed("a + b / c * 2",
+                    if(wb == null)wb = k;
+                    if(wb == Side.LEFT) r.set(k, NumberVar.expressed("a + b / c * 2",
                             rect.getLeft(), pixelParcel.ware, windowWidth()));
                     else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed("a - b / c * 2",
                             rect.getRight(), pixelParcel.ware, windowWidth()));
+                    else if(wb == Pos.HORIZONTAL_CENTER) r.set(k, NumberVar.expressed("(b - a) / 2 + a + c / d * 2",
+                            rect.getLeft(), rect.getRight(), pixelParcel.ware, windowWidth()));
                 } else if(s.assigned(PercentParcel.class)) {
                     PercentParcel percentParcel = s.asExpected();
                     var wb = percentParcel.waybill;
-                    if(wb == null || wb == Side.LEFT) r.set(k, NumberVar.expressed("(a - b) * c / 100 + b",
+                    if(wb == null)wb = k;
+                    if(wb == Side.LEFT) r.set(k, NumberVar.expressed("(a - b) * c / 100 + b",
                             rect.getRight(), rect.getLeft(), percentParcel.ware));
                     else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed("(a - b) * c / 100 + b",
+                            rect.getLeft(), rect.getRight(), percentParcel.ware));
+                    else if(wb == Pos.HORIZONTAL_CENTER) r.set(k, NumberVar.expressed("w / 2 + a + w * c / 100; w = b - a",
                             rect.getLeft(), rect.getRight(), percentParcel.ware));
                 }
             } else if(k == Pos.VERTICAL_CENTER || k == Side.TOP || k == Side.BOTTOM) {
                 if(s.assigned(PixelParcel.class)) {
                     PixelParcel pixelParcel = s.asExpected();
                     var wb = pixelParcel.waybill;
-                    if(wb == null || wb == Side.TOP) r.set(k, NumberVar.expressed("a - b / c * 2",
+                    if(wb == null)wb = k;
+                    if(wb == Side.TOP) r.set(k, NumberVar.expressed("a - b / c * 2",
                             rect.getTop(), pixelParcel.ware, windowHeight()));
                     else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed("a + b / c * 2",
                             rect.getBottom(), pixelParcel.ware, windowHeight()));
+                    else if(wb == Pos.VERTICAL_CENTER) r.set(k, NumberVar.expressed("(b - a) / 2 + a + c / d * 2",
+                            rect.getBottom(), rect.getTop(), pixelParcel.ware, windowHeight()));
                 } else if(s.assigned(PercentParcel.class)) {
                     PercentParcel percentParcel = s.asExpected();
                     var wb = percentParcel.waybill;
-                    if(wb == null || wb == Side.TOP) r.set(k, NumberVar.expressed("(a - b) * c / 100 + b",
+                    if(wb == null)wb = k;
+                    if(wb == Side.TOP) r.set(k, NumberVar.expressed("(a - b) * c / 100 + b",
                             rect.getTop(), rect.getBottom(), percentParcel.ware));
                     else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed("(a - b) * c / 100 + b",
+                            rect.getBottom(), rect.getTop(), percentParcel.ware));
+                    else if(wb == Pos.VERTICAL_CENTER) r.set(k, NumberVar.expressed("w / 2 + a + w * c / 100; w = b - a",
                             rect.getBottom(), rect.getTop(), percentParcel.ware));
                 }
             } else if(k == Dim.WIDTH) {
@@ -157,5 +177,18 @@ public class InterFrame implements Frame, Printable{
         sub.put(Frame.class, this);
         sub.getDone(Rectangle.class, this::rect, sub);
         return InterFrame.form(sub);
+    }
+
+    public static class Sketch<T extends Sketch<T>> extends Rectangle.Sketch<T> {
+
+        public Sketch(Subject s) {
+            super(s);
+            set(AbstractSketch.MODEL, InterFrame.class);
+        }
+
+        public T component(Subject sketch) {
+            into(COMPONENTS).add(sketch);
+            return self();
+        }
     }
 }

@@ -130,6 +130,11 @@ public class Window extends Playground implements Frame{
         components.set(component);
     }
 
+    @Override
+    public void append(Object key, Printable component) {
+        components.set(key, component);
+    }
+
     public Keyboard getKeyboard() {
         return keyboard;
     }
@@ -168,7 +173,7 @@ public class Window extends Playground implements Frame{
                     PixelParcel pixelParcel = s.asExpected();
                     var wb = pixelParcel.waybill;
                     if(wb == null || wb == Side.LEFT) r.set(k, pixelParcel.ware);
-                    else if(wb == Side.RIGHT) r.set(k, NumberVar.difference(Suite.add(width).add(pixelParcel.ware)));
+                    else if(wb == Side.RIGHT) r.set(k, NumberVar.difference(width, pixelParcel.ware));
                 } else if(s.assigned(PercentParcel.class)) {
                     PercentParcel percentParcel = s.asExpected();
                     var wb = percentParcel.waybill;
@@ -182,7 +187,7 @@ public class Window extends Playground implements Frame{
                     PixelParcel pixelParcel = s.asExpected();
                     var wb = pixelParcel.waybill;
                     if(wb == null || wb == Side.TOP) r.set(k, pixelParcel.ware);
-                    else if(wb == Side.BOTTOM) r.set(k, NumberVar.difference(Suite.add(height).add(pixelParcel.ware)));
+                    else if(wb == Side.BOTTOM) r.set(k, NumberVar.difference(height, pixelParcel.ware));
                 } else if(s.assigned(PercentParcel.class)) {
                     PercentParcel percentParcel = s.asExpected();
                     var wb = percentParcel.waybill;
