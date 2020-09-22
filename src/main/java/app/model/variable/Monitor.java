@@ -27,31 +27,31 @@ public class Monitor implements ValueConsumer<Object>, ValueProducer<Boolean> {
         return Monitor.compose(pressed, components, s -> {});
     }
 
-    public Fun intent(Subject inputs, Subject outputs, Action action) {
+    public Fun intent(Fluid inputs, Subject outputs, Action action) {
         return Fun.compose(inputs, outputs.add(this), action);
     }
 
-    public Fun intent(Subject inputs, Impression impression) {
+    public Fun intent(Fluid inputs, Impression impression) {
         return Fun.compose(inputs, Suite.set(this), impression);
     }
 
-    public <V> Fun intent(Subject inputs, ValueConsumer<V> output, Function<Subject, V> function) {
+    public <V> Fun intent(Fluid inputs, ValueConsumer<V> output, Function<Subject, V> function) {
         return Fun.compose(inputs, Suite.set(Var.OWN_VALUE, output).set(this), s -> Suite.set(Var.OWN_VALUE, function.apply(s)));
     }
 
-    public Fun instant(Subject inputs, Subject outputs, Action action) {
+    public Fun instant(Fluid inputs, Subject outputs, Action action) {
         Fun fun = Fun.compose(inputs, outputs.add(this), action);
         attachInstant(fun);
         return fun;
     }
 
-    public Fun instant(Subject inputs, Impression impression) {
+    public Fun instant(Fluid inputs, Impression impression) {
         Fun fun = Fun.compose(inputs, Suite.set(this), impression);
         attachInstant(fun);
         return fun;
     }
 
-    public <V> Fun instant(Subject inputs, ValueConsumer<V> output, Function<Subject, V> function) {
+    public <V> Fun instant(Fluid inputs, ValueConsumer<V> output, Function<Subject, V> function) {
         Fun fun = Fun.compose(inputs, Suite.set(Var.OWN_VALUE, output).set(this), s -> Suite.set(Var.OWN_VALUE, function.apply(s)));
         attachInstant(fun);
         return fun;

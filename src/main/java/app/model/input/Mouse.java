@@ -77,4 +77,8 @@ public class Mouse {
     public Scroll getScroll() {
         return scroll;
     }
+
+    public Var<Vector2d> getPosition() {
+        return position;
+    }
 }

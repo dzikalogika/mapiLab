@@ -2,16 +2,24 @@ package app;
 
 import app.model.*;
 import app.model.input.Keyboard;
+import app.model.util.TSuite;
 import app.model.variable.*;
+import suite.suite.Subject;
 import suite.suite.Suite;
+import suite.suite.action.Action;
+import suite.suite.action.Impression;
+import suite.suite.action.Statement;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL45.*;
 
 public class Main extends Window {
 
     public static void main(String[] args) {
-        Window.play(Suite.set(Window.class, Main.class));
+        Window.play(Suite.
+                set(Window.class, Main.class).
+                set(Color.RED, .2f).
+                set(Color.GREEN, .5f).
+                set(Color.BLUE, .4f));
     }
 
 
@@ -40,35 +48,39 @@ public class Main extends Window {
         NumberVar w = NumberVar.emit(60);
         NumberVar h = NumberVar.emit(60);
 
-        append(InterFrame.sketch().
-                left(50).
-                right(200).
-                top(50).
-                bottom(50).
-                redColor(0.2).
-                greenColor(0.5).
-                blueColor(0.8).
-                component(Rectangle.sketch().
-                        horizontalCenter(xs).
-                        verticalCenter(ys).
-                        width(w).
-                        height(h).
-                        redColor(r).
-                        greenColor(g).
-                        blueColor(b).
-                        set("face", 0.4)).
-                component(Rectangle.sketch().
-                        horizontalCenter(NumberVar.sum(xs, 100, ys)).
-                        verticalCenter(ys).
-                        width(w).
-                        height(h).
-                        redColor(NumberVar.difference(1, r)).
-                        greenColor(g).
-                        blueColor(b).
+        place(Rectangle.sketch().
+                sides(50, 200, 50, 50).
+                color(0.2, 0.5, 0.8).
+                place(Rectangle.sketch().
+                        center(xs, ys).
+                        dim(w, h).
+                        color(r, g, b).
+                        set("face", 0.4).
+                        set(Rectangle.$MOUSE_ENTER, (Statement) () -> {
+                            r.set(1 - r.getFloat());
+                            g.set(1 - g.getFloat());
+                            b.set(1 - b.getFloat());
+                        }).
+                        set(Rectangle.$MOUSE_LEAVE, (Statement) () -> {
+                            r.set(1 - r.getFloat());
+                            g.set(1 - g.getFloat());
+                            b.set(1 - b.getFloat());
+                        })).
+                place(Rectangle.sketch().
+                        center(NumberVar.sum(xs, 100, ys), ys).
+                        dim(w, h).
+                        color(NumberVar.difference(1, r), g, b).
                         set("face", 0.4)));
 
-        append(text = text(Suite.set(Pos.X, pc(50)).set(Pos.Y, pc(50)).set(Dim.H, textH).set("text", "W").
-                set(Color.R, 200).set(Color.BLUE, 200)));
+        place(text = text(Text.sketch().
+                horizontalCenter(50, Unit.PERCENT).
+                verticalCenter(50, Unit.PERCENT).
+                height(textH).
+                content("W").
+                redColor(200).
+                blueColor(200)));
+
+        instant(TSuite.params(mouse.getPosition()), text.getContent(), Subject::asString);
 
         instant(Suite.set(keyboard.getKey(GLFW_KEY_Z).getPressed().select((b0, b1) -> b1)).set(textH.weak()), textH, s -> s.recent().asInt() + 10);
 
@@ -108,8 +120,6 @@ public class Main extends Window {
 
         instant(Suite.set(w.weak()).set(keyboard.getKey(GLFW_KEY_W).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), w,
                 s -> keyboard.getKey(GLFW_KEY_LEFT_SHIFT).getPressed().get() ? s.asInt() + 10 : s.asInt() - 10);
-
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     }
 
     @Override

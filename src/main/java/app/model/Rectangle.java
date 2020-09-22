@@ -1,16 +1,26 @@
 package app.model;
 
 import app.model.util.Generator;
+import app.model.util.PercentParcel;
 import app.model.util.PixelParcel;
+import app.model.util.TSuite;
 import app.model.variable.*;
+import org.joml.Vector2d;
 import suite.sets.Sets;
-import suite.suite.SolidSubject;
 import suite.suite.Subject;
 import suite.suite.Suite;
+import suite.suite.action.Action;
 import suite.suite.util.Fluid;
 
 
-public class Rectangle extends Playground implements Printable {
+public class Rectangle extends Composite {
+
+    public static final Object OUTFIT = new Object();
+
+    public static final Object $MOUSE_ENTER = new Object();
+    public static final Object $MOUSE_LEAVE = new Object();
+    public static final Object $MOUSE_PRESS = new Object();
+    public static final Object $MOUSE_RELEASE = new Object();
 
     public static final Exp expA = Exp.compile("a, b");
     public static final Exp expB = Exp.compile("a, 2 * b - a");
@@ -19,6 +29,8 @@ public class Rectangle extends Playground implements Printable {
     public static final Exp expE = Exp.compile("a - b / 2, a + b / 2");
 
 
+    Window window;
+    Composite parent;
 
     private final NumberVar right = NumberVar.emit(.2);
     private final NumberVar top = NumberVar.emit(.2);
@@ -29,8 +41,12 @@ public class Rectangle extends Playground implements Printable {
     private final Subject weakParams = Suite.wonky();
 
     private Monitor vertexMonitor;
+    Var<Boolean> mouseIn;
 
-    public static boolean applyExp(Subject sub, Fluid in, Fluid out, Exp exp) {
+    Action $mouseEnter;
+    Action $mouseLeave;
+
+    static boolean applyExp(Subject sub, Fluid in, Fluid out, Exp exp) {
         Subject s;
         if((s = Sets.insec(sub, in)).size() == 2) {
             BeltFun.express(Fluid.engage(Generator.alpha(), s.values()), out, exp).reduce(true);
@@ -39,21 +55,35 @@ public class Rectangle extends Playground implements Printable {
         return true;
     }
 
-    public static Sketch<?> sketch(Subject s) {
-        return new Sketch<>(s);
-    }
-
-    public static Sketch<?> sketch() {
-        return new Sketch<>(Suite.set());
-    }
-
     public static Rectangle form(Subject sub) {
 
-        Rectangle rect = new Rectangle();
+        Rectangle rectangle = new Rectangle(sub);
+        rectangle.window = sub.get(Window.class).asExpected();
+        rectangle.parent = sub.get(Composite.class).asExpected();
+        for(Subject s : sub.at(COMPONENTS)) {
+            rectangle.place(s.key().direct(), s.asGiven(Subject.class));
+        }
 
+        rectangle.mouseIn = SimpleVar.compound(false, TSuite.params(rectangle.window.mouse.getPosition(),
+                rectangle.window.width, rectangle.window.height, rectangle.left, rectangle.right, rectangle.top, rectangle.bottom), s -> {
+            Vector2d mPos = s.asExpected();
+            double w = s.get(1).asDouble(), h = s.get(2).asDouble();
+            double x = 2. * mPos.x / w - 1., y = 1. - 2. * mPos.y / h;
+            double l = s.get(3).asDouble(), r = s.get(4).asDouble(), t = s.get(5).asDouble(), b = s.get(6).asDouble();
+            return x > l && x < r && y < t && y > b;
+        });
+        rectangle.intent(TSuite.params(rectangle.mouseIn.suppressIdentity()), s -> {
+            if(s.asGiven(Boolean.class)) rectangle.mouseEnter();
+            else rectangle.mouseLeave();
+        });
+        return rectangle;
+    }
+
+    public Rectangle(Subject sub) {
+        this();
         Subject s;
-        Subject hors = Suite.add(rect.left).add(rect.right);
-        Subject vers = Suite.add(rect.bottom).add(rect.top);
+        Subject hors = Suite.add(left).add(right);
+        Subject vers = Suite.add(bottom).add(top);
 
         if(applyExp(sub, Suite.set(Side.LEFT).set(Side.RIGHT), hors, expA) &&
                 applyExp(sub, Suite.set(Side.LEFT).set(Pos.HORIZONTAL_CENTER), hors, expB) &&
@@ -69,11 +99,12 @@ public class Rectangle extends Playground implements Printable {
                 applyExp(sub, Suite.set(Side.TOP).set(Dim.HEIGHT), vers.reverse(), expD) &&
                 applyExp(sub, Suite.set(Pos.VERTICAL_CENTER).set(Dim.HEIGHT), vers, expE));
 
-        rect.face.assign(sub.get("face"));
-        if((s = sub.get("outfit")).settled()) rect.outfit.assign(s);
-        else rect.outfit.set(Outfit.form(sub));
+        face.assign(sub.get("face"));
+        if((s = sub.get(OUTFIT)).settled()) outfit.assign(s);
+        else outfit.set(Outfit.form(sub));
 
-        return rect;
+        if((s = sub.get($MOUSE_ENTER)).settled()) $mouseEnter = s.asExpected();
+        if((s = sub.get($MOUSE_LEAVE)).settled()) $mouseLeave = s.asExpected();
     }
 
     public Rectangle() {
@@ -113,6 +144,7 @@ public class Rectangle extends Playground implements Printable {
             outfit.get().updateVertex(getVertex(v, 0, 7));
         }
         outfit.get().print();
+        components.values(Component.class).forEach(Component::print);
     }
 
     public float[] getVertex(float[] collector, int offset, int stride) {
@@ -142,6 +174,151 @@ public class Rectangle extends Playground implements Printable {
 
     public NumberVar getHeight() {
         return weakParams.getDone(Dim.HEIGHT, () -> NumberVar.expressed(Suite.add(top).add(bottom), Exp::sub)).asExpected();
+    }
+
+    public Text text(Subject sub) {
+        Subject r = Suite.set();
+        for(var s : sub) {
+            var k = s.key().direct();
+            if(k == Side.LEFT || k == Side.RIGHT || k == Pos.HORIZONTAL_CENTER) {
+                if(s.assigned(PixelParcel.class)) {
+                    PixelParcel pixelParcel = s.asExpected();
+                    var wb = pixelParcel.waybill;
+                    if(wb == null || wb == Side.LEFT) r.set(k, NumberVar.expressed("a * (b + 1) / 2 + c",
+                            window.getWidth(), getLeft(), pixelParcel.ware));
+                    else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed("a * (b + 1) / 2 - c",
+                            window.getWidth(), getRight(), pixelParcel.ware));
+                } else if(s.assigned(PercentParcel.class)) {
+                    PercentParcel percentParcel = s.asExpected();
+                    var wb = percentParcel.waybill;
+                    if(wb == null || wb == Side.LEFT) r.set(k, NumberVar.expressed("((r - l) * p / 100 + l) * w",
+                            Suite.set("r", getRight()).set("l", getLeft()).set("p", percentParcel.ware).set("w", window.getWidth())));
+                    else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed("((l - r) * p / 100 + r) * w",
+                            Suite.set("r", getRight()).set("l", getLeft()).set("p", percentParcel.ware).set("w", window.getWidth())));
+                }
+            } else if(k == Side.BOTTOM || k == Side.TOP || k == Pos.VERTICAL_CENTER) {
+                if(s.assigned(PixelParcel.class)) {
+                    PixelParcel pixelParcel = s.asExpected();
+                    var wb = pixelParcel.waybill;
+                    if(wb == null || wb == Side.TOP) r.set(k, NumberVar.expressed("a * (b + 1) / 2 - c",
+                            window.getHeight(), getTop(), pixelParcel.ware));
+                    else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed("a * (b + 1) / 2 + c",
+                            window.getHeight(), getTop(), pixelParcel.ware));
+                } else if(s.assigned(PercentParcel.class)) {
+                    PercentParcel percentParcel = s.asExpected();
+                    var wb = percentParcel.waybill;
+                    if(wb == null || wb == Side.TOP) r.set(k, NumberVar.expressed("((a - b) * c / 100 + b) * d",
+                            getBottom(), getTop(), percentParcel.ware, window.getHeight()));
+                    else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed("((a - b) * c / 100 + b) * d",
+                            getTop(), getBottom(), percentParcel.ware, window.getHeight()));
+                }
+            } else r.inset(s);
+        }
+        r.put("pw", window.getWidth()).put("ph", window.getHeight());
+        return Text.form(r);
+    }
+
+    public Rectangle rect(Subject sub) {
+        Subject r = Suite.set();
+        for(var s : sub) {
+            var k = s.key().direct();
+            if(k == Pos.HORIZONTAL_CENTER || k == Side.LEFT || k == Side.RIGHT) {
+                if(s.assigned(PixelParcel.class)) {
+                    PixelParcel pixelParcel = s.asExpected();
+                    var wb = pixelParcel.waybill;
+                    if(wb == null)wb = k;
+                    if(wb == Side.LEFT) r.set(k, NumberVar.expressed("a + b / c * 2",
+                            getLeft(), pixelParcel.ware, window.getWidth()));
+                    else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed("a - b / c * 2",
+                            getRight(), pixelParcel.ware, window.getWidth()));
+                    else if(wb == Pos.HORIZONTAL_CENTER) r.set(k, NumberVar.expressed("(b - a) / 2 + a + c / d * 2",
+                            getLeft(), getRight(), pixelParcel.ware, window.getWidth()));
+                } else if(s.assigned(PercentParcel.class)) {
+                    PercentParcel percentParcel = s.asExpected();
+                    var wb = percentParcel.waybill;
+                    if(wb == null)wb = k;
+                    if(wb == Side.LEFT) r.set(k, NumberVar.expressed("(a - b) * c / 100 + b",
+                            getRight(), getLeft(), percentParcel.ware));
+                    else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed("(a - b) * c / 100 + b",
+                            getLeft(), getRight(), percentParcel.ware));
+                    else if(wb == Pos.HORIZONTAL_CENTER) r.set(k, NumberVar.expressed("w / 2 + a + w * c / 100; w = b - a",
+                            getLeft(), getRight(), percentParcel.ware));
+                }
+            } else if(k == Pos.VERTICAL_CENTER || k == Side.TOP || k == Side.BOTTOM) {
+                if(s.assigned(PixelParcel.class)) {
+                    PixelParcel pixelParcel = s.asExpected();
+                    var wb = pixelParcel.waybill;
+                    if(wb == null)wb = k;
+                    if(wb == Side.TOP) r.set(k, NumberVar.expressed("a - b / c * 2",
+                            getTop(), pixelParcel.ware, window.getHeight()));
+                    else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed("a + b / c * 2",
+                            getBottom(), pixelParcel.ware, window.getHeight()));
+                    else if(wb == Pos.VERTICAL_CENTER) r.set(k, NumberVar.expressed("(b - a) / 2 + a + c / d * 2",
+                            getBottom(), getTop(), pixelParcel.ware, window.getHeight()));
+                } else if(s.assigned(PercentParcel.class)) {
+                    PercentParcel percentParcel = s.asExpected();
+                    var wb = percentParcel.waybill;
+                    if(wb == null)wb = k;
+                    if(wb == Side.TOP) r.set(k, NumberVar.expressed("(a - b) * c / 100 + b",
+                            getTop(), getBottom(), percentParcel.ware));
+                    else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed("(a - b) * c / 100 + b",
+                            getBottom(), getTop(), percentParcel.ware));
+                    else if(wb == Pos.VERTICAL_CENTER) r.set(k, NumberVar.expressed("w / 2 + a + w * c / 100; w = b - a",
+                            getBottom(), getTop(), percentParcel.ware));
+                }
+            } else if(k == Dim.WIDTH) {
+                if(s.assigned(PixelParcel.class)) {
+                    PixelParcel pixelParcel = s.asExpected();
+                    var wb = pixelParcel.waybill;
+                    if(wb == null) r.set(Dim.WIDTH, NumberVar.expressed("a / b * 2",
+                            pixelParcel.ware, window.getWidth()));
+                } else if(s.assigned(PercentParcel.class)) {
+                    PercentParcel percentParcel = s.asExpected();
+                    var wb = percentParcel.waybill;
+                    if(wb == null) r.set(Dim.WIDTH, NumberVar.expressed("(a - b) * c / 100",
+                            getRight(), getLeft(), percentParcel.ware));
+                }
+            } else if(k == Dim.HEIGHT) {
+                if(s.assigned(PixelParcel.class)) {
+                    PixelParcel pixelParcel = s.asExpected();
+                    var wb = pixelParcel.waybill;
+                    if(wb == null) r.set(Dim.HEIGHT, NumberVar.expressed("a / b * 2",
+                            pixelParcel.ware, window.getHeight()));
+                } else if(s.assigned(PercentParcel.class)) {
+                    PercentParcel percentParcel = s.asExpected();
+                    var wb = percentParcel.waybill;
+                    if(wb == null) r.set(Dim.HEIGHT, NumberVar.expressed("(a - b) * c / 100",
+                            getTop(), getBottom(), percentParcel.ware));
+                }
+            } else r.inset(s);
+        }
+        r.put(Composite.class, this).put(Window.class, window);
+        Rectangle rect = Rectangle.form(r);
+
+        return rect;
+    }
+
+    public void mouseEnter() {
+        if($mouseEnter != null) $mouseEnter.play(Suite.set(this));
+    }
+
+    public void mouseLeave() {
+        if($mouseLeave != null) $mouseLeave.play(Suite.set(this));
+    }
+
+    //    @Override
+//    public Button button(Subject sub) {
+//        sub.put(Frame.class, this);
+//        sub.getDone(Rectangle.class, this::rect, sub);
+//        return new Button(sub);
+//    }
+
+    public static Sketch<?> sketch(Subject s) {
+        return new Sketch<>(s);
+    }
+
+    public static Sketch<?> sketch() {
+        return new Sketch<>(Suite.set());
     }
 
     public static class Sketch<T extends Sketch<T>> extends AbstractSketch<T> {
@@ -273,6 +450,27 @@ public class Rectangle extends Playground implements Printable {
 
         public T blueColor(Object var) {
             set(Color.BLUE, var);
+            return self();
+        }
+
+        public T sides(Object left, Object right, Object top, Object bottom) {
+            return left(left).right(right).top(top).bottom(bottom);
+        }
+
+        public T center(Object x, Object y) {
+            return horizontalCenter(x).verticalCenter(y);
+        }
+
+        public T dim(Object width, Object height) {
+            return width(width).height(height);
+        }
+
+        public T color(Object red, Object green, Object blue) {
+            return redColor(red).greenColor(green).blueColor(blue);
+        }
+
+        public T place(Subject sketch) {
+            into(COMPONENTS).add(sketch);
             return self();
         }
     }

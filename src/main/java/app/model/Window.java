@@ -4,6 +4,7 @@ import app.model.input.Keyboard;
 import app.model.input.Mouse;
 import app.model.util.PercentParcel;
 import app.model.util.PixelParcel;
+import app.model.util.TSuite;
 import app.model.variable.*;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
@@ -20,7 +21,7 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
-public class Window extends Playground implements Frame{
+public class Window extends Composite {
 
     static Subject windows = Suite.set();
 
@@ -30,12 +31,16 @@ public class Window extends Playground implements Frame{
 
         Window window = Window.create(
                 sub.get(Window.class).orGiven(Window.class),
-                sub.get("w").orGiven(800),
-                sub.get("h").orGiven(600));
+                sub.get(Dim.WIDTH).orGiven(800),
+                sub.get(Dim.HEIGHT).orGiven(600),
+                sub.get(Color.RED).orGiven(0.2f),
+                sub.get(Color.GREEN).orGiven(0.4f),
+                sub.get(Color.BLUE).orGiven(0.4f));
 
         glfwShowWindow(window.getGlid());
 
         glfwSwapInterval(1);
+        System.out.println(window.components);
 
         while(windows.settled())
         {
@@ -44,13 +49,10 @@ public class Window extends Playground implements Frame{
 //            lastFrame = currentFrame;
 
             glfwPollEvents();
-            for(var s : windows) {
-                Window win = s.asExpected();
+            for(Window win : windows.values(Window.class)) {
                 win.play();
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                for(Printable p : win.components.values(Printable.class)) {
-                    p.print();
-                }
+                win.print();
                 glfwSwapBuffers(win.getGlid());
                 if(glfwWindowShouldClose(win.getGlid()))windows.unset(win.getGlid());
             }
@@ -59,7 +61,7 @@ public class Window extends Playground implements Frame{
         glfwTerminate();
     }
 
-    public static Window create(Class<? extends Window> windowType, int width, int height) {
+    public static Window create(Class<? extends Window> windowType, int width, int height, float red, float green, float blue) {
         Window window = null;
         try {
             window = windowType.getConstructor(int.class, int.class).newInstance(width, height);
@@ -71,6 +73,15 @@ public class Window extends Playground implements Frame{
             glEnable(GL_CULL_FACE);
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            window.redColor.set(red);
+            window.greenColor.set(green);
+            window.blueColor.set(blue);
+            window.alphaColor.set(1);
+            window.intent(TSuite.params(window.redColor, window.greenColor, window.blueColor, window.alphaColor), s -> {
+                glClearColor(s.asFloat(), s.get(1).asFloat(), s.get(2).asFloat(), s.get(3).asFloat());
+            }).press(true);
+
             window.ready();
             long glid = window.getGlid();
             windows.setAt(Slot.PRIME, glid, window);
@@ -86,7 +97,10 @@ public class Window extends Playground implements Frame{
     protected final Mouse mouse = new Mouse();
     protected final NumberVar width;
     protected final NumberVar height;
-    protected final Subject components = Suite.set();
+    final NumberVar redColor = NumberVar.emit(0);
+    final NumberVar greenColor = NumberVar.emit(0);
+    final NumberVar blueColor = NumberVar.emit(0);
+    final NumberVar alphaColor = NumberVar.emit(1);
 
     public Window(int width, int height) {
         this.width = NumberVar.emit(width);
@@ -112,6 +126,11 @@ public class Window extends Playground implements Frame{
         glfwSetCharModsCallback(glid, keyboard::reportCharEvent);
     }
 
+    @Override
+    void print() {
+        components.values().filter(Component.class).forEach(Component::print);
+    }
+
     protected void ready() {}
 
     public long getGlid() {
@@ -124,15 +143,6 @@ public class Window extends Playground implements Frame{
 
     public NumberVar getHeight() {
         return height;
-    }
-
-    public void append(Printable component) {
-        components.set(component);
-    }
-
-    @Override
-    public void append(Object key, Printable component) {
-        components.set(key, component);
     }
 
     public Keyboard getKeyboard() {
@@ -149,16 +159,6 @@ public class Window extends Playground implements Frame{
 
     public void setLockKeyModifiers(boolean lock) {
         glfwSetInputMode(glid, GLFW_LOCK_KEY_MODS, lock ? GLFW_TRUE : GLFW_FALSE);
-    }
-
-    @Override
-    public NumberVar windowWidth() {
-        return width;
-    }
-
-    @Override
-    public NumberVar windowHeight() {
-        return height;
     }
 
     private static final Exp textExpLeftTop = Exp.compile("a * b / 100");
@@ -271,12 +271,9 @@ public class Window extends Playground implements Frame{
                 }
             } else r.inset(s);
         }
-        return Rectangle.form(r);
-    }
+        r.put(Composite.class, this).put(Window.class, this);
+        Rectangle rect = Rectangle.form(r);
 
-    public InterFrame frame(Subject sub) {
-        sub.put(Frame.class, this);
-        sub.getDone(Rectangle.class, this::rect, sub);
-        return InterFrame.form(sub);
+        return rect;
     }
 }

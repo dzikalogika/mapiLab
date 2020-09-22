@@ -202,6 +202,10 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
         else return "<" + value + ">";
     }
 
+    public String address() {
+        return super.toString();
+    }
+
     public Subject getInputs() {
         return inputs;
     }
