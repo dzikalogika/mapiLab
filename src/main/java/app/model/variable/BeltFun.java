@@ -45,30 +45,6 @@ public class BeltFun extends Fun {
         }
     }
 
-    public void detach() {
-        inputs.keys().forEach(this::detachInput);
-        inputs = Suite.set();
-        outputs.keys().forEach(this::detachOutput);
-    }
-
-    public void detachOutput(Object key) {
-        var s = outputs.get(key);
-        if(s.settled()) {
-            WeakReference<ValueConsumer<?>> ref = s.asExpected();
-            ref.clear();
-        }
-    }
-
-    public void detachOutputVar(Var<?> output) {
-        for (var s : outputs){
-            WeakReference<ValueConsumer<?>> ref = s.asExpected();
-            ValueConsumer<?> var = ref.get();
-            if(var != null && var.equals(output)) {
-                ref.clear();
-            }
-        }
-    }
-
     boolean cycleTest(Fun fun) {
         for(var s : outputs) {
             WeakReference<ValueConsumer<?>> ref = s.asExpected();

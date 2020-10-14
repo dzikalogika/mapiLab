@@ -1,15 +1,18 @@
 package app.model;
 
+import app.model.input.Mouse;
 import app.model.util.Generator;
 import app.model.util.PercentParcel;
 import app.model.util.PixelParcel;
-import app.model.util.TSuite;
 import app.model.variable.*;
 import org.joml.Vector2d;
+import org.lwjgl.glfw.GLFW;
 import suite.sets.Sets;
+import suite.suite.Sub;
 import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.action.Action;
+import suite.suite.util.Cascade;
 import suite.suite.util.Fluid;
 
 
@@ -21,6 +24,8 @@ public class Rectangle extends Composite {
     public static final Object $MOUSE_LEAVE = new Object();
     public static final Object $MOUSE_PRESS = new Object();
     public static final Object $MOUSE_RELEASE = new Object();
+
+    public static final Object $MOUSE_IN = new Object();
 
     public static final Exp expA = Exp.compile("a, b");
     public static final Exp expB = Exp.compile("a, 2 * b - a");
@@ -41,47 +46,26 @@ public class Rectangle extends Composite {
     private final Subject weakParams = Suite.wonky();
 
     private Monitor vertexMonitor;
-    Var<Boolean> mouseIn;
+    Var<Boolean> mouseIn = SimpleVar.emit(false);
+    Var<Boolean> mousePressed = SimpleVar.emit(false);
+
+    Subject states = Suite.set();
 
     Action $mouseEnter;
     Action $mouseLeave;
+    Action $mousePress;
+    Action $mouseRelease;
 
     static boolean applyExp(Subject sub, Fluid in, Fluid out, Exp exp) {
         Subject s;
         if((s = Sets.insec(sub, in)).size() == 2) {
-            BeltFun.express(Fluid.engage(Generator.alpha(), s.values()), out, exp).reduce(true);
+            BeltFun.express(Fluid.engage(Generator.alphas(), s.values()), out, exp).reduce(true);
             return false;
         }
         return true;
     }
 
-    public static Rectangle form(Subject sub) {
-
-        Rectangle rectangle = new Rectangle(sub);
-        rectangle.window = sub.get(Window.class).asExpected();
-        rectangle.parent = sub.get(Composite.class).asExpected();
-        for(Subject s : sub.at(COMPONENTS)) {
-            rectangle.place(s.key().direct(), s.asGiven(Subject.class));
-        }
-
-        rectangle.mouseIn = SimpleVar.compound(false, TSuite.params(rectangle.window.mouse.getPosition(),
-                rectangle.window.width, rectangle.window.height, rectangle.left, rectangle.right, rectangle.top, rectangle.bottom), s -> {
-            Vector2d mPos = s.asExpected();
-            double w = s.get(1).asDouble(), h = s.get(2).asDouble();
-            double x = 2. * mPos.x / w - 1., y = 1. - 2. * mPos.y / h;
-            double l = s.get(3).asDouble(), r = s.get(4).asDouble(), t = s.get(5).asDouble(), b = s.get(6).asDouble();
-            return x > l && x < r && y < t && y > b;
-        });
-        rectangle.intent(TSuite.params(rectangle.mouseIn.suppressIdentity()), s -> {
-            if(s.asGiven(Boolean.class)) rectangle.mouseEnter();
-            else rectangle.mouseLeave();
-        });
-        return rectangle;
-    }
-
-    public Rectangle(Subject sub) {
-        this();
-        Subject s;
+    Subject applyExps(Subject sub) {
         Subject hors = Suite.add(left).add(right);
         Subject vers = Suite.add(bottom).add(top);
 
@@ -98,6 +82,39 @@ public class Rectangle extends Composite {
                 applyExp(sub, Suite.set(Side.TOP).set(Pos.VERTICAL_CENTER), vers.reverse(), expB) &&
                 applyExp(sub, Suite.set(Side.TOP).set(Dim.HEIGHT), vers.reverse(), expD) &&
                 applyExp(sub, Suite.set(Pos.VERTICAL_CENTER).set(Dim.HEIGHT), vers, expE));
+    }
+
+    public static Rectangle form(Subject sub) {
+
+        Rectangle rectangle = new Rectangle(sub);
+        rectangle.window = sub.get(Window.class).asExpected();
+        rectangle.parent = sub.get(Composite.class).asExpected();
+        for(Subject s : sub.at(COMPONENTS)) {
+            rectangle.place(s.key().direct(), s.asGiven(Subject.class));
+        }
+
+        rectangle.mouseIn.compose(num(rectangle.window.mouse.getPosition(), rectangle.window.width,
+                rectangle.window.height, rectangle.left, rectangle.right, rectangle.top, rectangle.bottom), s -> {
+            Vector2d mPos = s.asExpected();
+            double w = s.get(1).asDouble(), h = s.get(2).asDouble();
+            double x = 2. * mPos.x / w - 1., y = 1. - 2. * mPos.y / h;
+            double l = s.get(3).asDouble(), r = s.get(4).asDouble(), t = s.get(5).asDouble(), b = s.get(6).asDouble();
+            return x > l && x < r && y < t && y > b;
+        });
+
+        rectangle.mousePressed.compose(num(rectangle.mouseIn, rectangle.window.mouse.getButton(GLFW.GLFW_MOUSE_BUTTON_1).getState()), s -> {
+            boolean mouseIn = s.asExpected();
+            Mouse.ButtonEvent be = s.recent().orGiven(null);
+            return mouseIn && be != null && be.getAction() == GLFW.GLFW_PRESS;
+        });
+
+        return rectangle;
+    }
+
+    public Rectangle(Subject sub) {
+        this();
+        Subject s;
+        applyExps(sub);
 
         face.assign(sub.get("face"));
         if((s = sub.get(OUTFIT)).settled()) outfit.assign(s);
@@ -105,6 +122,16 @@ public class Rectangle extends Composite {
 
         if((s = sub.get($MOUSE_ENTER)).settled()) $mouseEnter = s.asExpected();
         if((s = sub.get($MOUSE_LEAVE)).settled()) $mouseLeave = s.asExpected();
+        intent(num(mouseIn.suppressIdentity()), s1 -> {
+            if(s1.asGiven(Boolean.class)) mouseEnter();
+            else mouseLeave();
+        });
+        if((s = sub.get($MOUSE_PRESS)).settled()) $mousePress = s.asExpected();
+        if((s = sub.get($MOUSE_RELEASE)).settled()) $mouseRelease = s.asExpected();
+        intent(num(mousePressed.suppressIdentity()), s1 -> {
+            if(s1.asGiven(Boolean.class)) mousePress();
+            else mouseRelease();
+        });
     }
 
     public Rectangle() {
@@ -115,6 +142,58 @@ public class Rectangle extends Composite {
                     set(o.getVertexMonitor()));
             o.updateIndices(new int[]{0, 2, 1, 0, 3, 2});
         });
+    }
+
+    public void loadState(Object state, Subject sketch) {
+
+        Sub<Fun> functions = sub();
+
+        Fun fun = null;
+        String exp;
+
+        var hParams = insec(sketch, Side.LEFT, Side.RIGHT, Pos.HORIZONTAL_CENTER, Dim.WIDTH);
+        if(hParams.size() > 2) throw new RuntimeException("Too many horizontal constraints given. Expected <= 2, given: " + hParams);
+
+        exp = null;
+
+        if( in(hParams, Side.LEFT, Side.RIGHT)) exp = "a, b";
+        else if( in(hParams, Side.LEFT, Pos.HORIZONTAL_CENTER)) exp = "a, 2 * b - a";
+        else if( in(hParams, Side.LEFT, Dim.WIDTH)) exp = "a, a + b";
+        else if( in(hParams, Side.RIGHT, Pos.HORIZONTAL_CENTER)) exp = "a; 2 * b - a";
+        else if( in(hParams, Side.RIGHT, Dim.WIDTH)) exp = "a - b, a";
+        else if( in(hParams, Dim.WIDTH, Pos.HORIZONTAL_CENTER)) exp = "b - a / 2, b + a / 2";
+
+        if(exp != null) functions.set("H", fun( abcS(hParams), exp, abc(left, right)));
+
+
+        var vParams = insec(sketch, Side.LEFT, Side.RIGHT, Pos.HORIZONTAL_CENTER, Dim.WIDTH);
+        if(vParams.size() > 2) throw new RuntimeException("Too many vertical constraints given. Expected <= 2, given: " + vParams);
+
+        exp = null;
+
+        if( in(vParams, Side.BOTTOM, Side.TOP)) exp = "a, b";
+        else if( in(vParams, Side.BOTTOM, Pos.VERTICAL_CENTER)) exp = "a, 2 * b - a";
+        else if( in(vParams, Side.BOTTOM, Dim.HEIGHT)) exp = "a, a + b";
+        else if( in(vParams, Side.TOP, Pos.VERTICAL_CENTER)) exp = "a; 2 * b - a";
+        else if( in(vParams, Side.TOP, Dim.HEIGHT)) exp = "a - b, a";
+        else if( in(vParams, Dim.HEIGHT, Pos.VERTICAL_CENTER)) exp = "b - a / 2, b + a / 2";
+
+        if(exp != null) functions.set("H", fun( abcS(vParams), exp, abc(bottom, top)));
+
+        if((s1 = face.assign(sketch.get("face"))).settled()) functions.set("face", s1.direct());
+
+        if((s1 = outfit.assign(sketch.get(OUTFIT))).settled()) functions.set(OUTFIT, s1.direct());
+        else if((s1 = outfit.assign(Suite.set(Outfit.form(sketch)))).settled()) functions.set(OUTFIT, s1.direct());
+
+        states.set(state, functions);
+    }
+
+    void changeState(int[] state) {
+        Subject s;
+        if((s = states.get(state)).settled()) {
+            Subject functions = s.asExpected();
+            if((s = functions.get("H")))
+        }
     }
 
     public NumberVar getRight() {
@@ -304,6 +383,14 @@ public class Rectangle extends Composite {
 
     public void mouseLeave() {
         if($mouseLeave != null) $mouseLeave.play(Suite.set(this));
+    }
+
+    public void mousePress() {
+        if($mousePress != null) $mousePress.play(Suite.set(this));
+    }
+
+    public void mouseRelease() {
+        if($mouseRelease != null) $mouseRelease.play(Suite.set(this));
     }
 
     //    @Override

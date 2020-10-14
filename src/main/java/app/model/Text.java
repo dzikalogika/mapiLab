@@ -44,7 +44,7 @@ public class Text extends Component {
         content.assign(sub.get(CONTENT));
         left.assign(sub.get(Side.LEFT));
         if((s = sub.get(Pos.HORIZONTAL_CENTER)).settled()) {
-            left.compose(TSuite.params(graphicModel, size, content, s.direct()), su -> {
+            left.compose(TSuite.num(graphicModel, size, content, s.direct()), su -> {
                 TextGraphic textGraphic = su.get(0).asExpected();
                 float size = su.get(1).asFloat();
                 String txt = su.get(2).asString();
@@ -53,7 +53,7 @@ public class Text extends Component {
             });
         }
         if((s = sub.get(Pos.VERTICAL_CENTER)).settled()) {
-            bottom.compose(TSuite.params(size, s.direct()), su -> {
+            bottom.compose(TSuite.num(size, s.direct()), su -> {
                 float size = su.get(0).asFloat();
                 float y = su.get(1).asFloat();
                 return y + size / 3;
@@ -141,7 +141,7 @@ public class Text extends Component {
     public NumberVar getWidth() {
         Subject s;
         if((s = weakParams.get(Dim.WIDTH)).settled()) return s.asExpected();
-        NumberVar w =  NumberVar.compound(TSuite.params(content, graphicModel, size), su -> {
+        NumberVar w =  NumberVar.compound(TSuite.num(content, graphicModel, size), su -> {
             String c = su.get(0).asExpected();
             TextGraphic g = su.get(1).asExpected();
             float size = su.get(2).asFloat();

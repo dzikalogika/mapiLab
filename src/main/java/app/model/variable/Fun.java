@@ -131,30 +131,30 @@ public class Fun {
         return false;
     }
 
+    public void attach() {
+        boolean press = false;
+        for(ValueProducer<?> vp : inputs.values(ValueProducer.class)) {
+            if(vp.attachOutput(this)) press = true;
+        }
+        if(press) press(false);
+    }
+
+    public void attach(boolean forcePress) {
+        boolean press = false;
+        for(ValueProducer<?> vp : inputs.values(ValueProducer.class)) {
+            if(vp.attachOutput(this)) press = true;
+        }
+        if(forcePress) press(true);
+        else if(press) press(false);
+    }
+
     public void detach() {
         inputs.keys().forEach(this::detachInput);
-        inputs = Suite.set();
-        outputs = Suite.set();
-    }
-
-    public void detachOutput(Object key) {
-        outputs.unset(key);
-    }
-
-    public void detachOutputVar(Var<?> output) {
-        for (var s : outputs){
-            WeakReference<ValueConsumer<?>> ref = s.asExpected();
-            ValueConsumer<?> var = ref.get();
-            if(var == null || var.equals(output)) {
-                outputs.unset(s.key().direct());
-            }
-        }
     }
 
     public void detachInput(Object key) {
         var s = inputs.get(key);
         if(s.settled()) {
-            inputs.unset(key);
             ValueProducer<?> var = s.asExpected();
             var.detachOutput(this);
         }
@@ -168,7 +168,7 @@ public class Fun {
         }
     }
 
-    public void reduce(boolean execute) {
+    public Fun reduce(boolean execute) {
         boolean allConstants = true;
         for(Object o : inputs.values()) {
             if(!(o instanceof Constant)) {
@@ -181,6 +181,7 @@ public class Fun {
             execute();
         }
         if(allConstants)detach();
+        return this;
     }
 
     boolean cycleTest(Fun fun) {

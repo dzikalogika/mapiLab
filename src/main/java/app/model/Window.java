@@ -78,7 +78,7 @@ public class Window extends Composite {
             window.greenColor.set(green);
             window.blueColor.set(blue);
             window.alphaColor.set(1);
-            window.intent(TSuite.params(window.redColor, window.greenColor, window.blueColor, window.alphaColor), s -> {
+            window.intent(TSuite.num(window.redColor, window.greenColor, window.blueColor, window.alphaColor), s -> {
                 glClearColor(s.asFloat(), s.get(1).asFloat(), s.get(2).asFloat(), s.get(3).asFloat());
             }).press(true);
 
@@ -208,6 +208,10 @@ public class Window extends Composite {
     private static final Exp rectExpPercentLeftBottom = Exp.compile("a / 50 - 1");
     private static final Exp rectExpPercentRightTop = Exp.compile("1 - a / 50");
     private static final Exp rectExpPercentWidthHeight = Exp.compile("a / 50");
+
+    public Rectangle.Sketch<?> rect() {
+        return Rectangle.sketch();
+    }
 
     public Rectangle rect(Subject sub) {
         Subject r = Suite.set();

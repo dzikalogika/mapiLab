@@ -99,23 +99,8 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
         inputs.set(fun);
     }
 
-    public void detachInput(Fun fun) {
-        inputs.unset(fun);
-        fun.detachOutputVar(this);
-    }
-
-    public void detachInputs() {
-        inputs.keys().filter(Fun.class).forEach(this::detachInput);
-
-    }
-
-    public void detachOutputs() {
-        outputs = Suite.set();
-    }
-
     public void detach() {
-        detachOutputs();
-        detachInputs();
+        outputs = Suite.set();
     }
 
     boolean cycleTest(Fun fun) {
@@ -145,50 +130,62 @@ public class Var<T> implements ValueProducer<T>, ValueConsumer<T> {
 
     public Var<T> suppressIdentity() {
         Var<T> suppressed = new Var<>(value, true);
-        Fun.suppressIdentity(this, suppressed);
+        Fun.suppressIdentity(this, suppressed).attach();
         return suppressed;
     }
 
     public Var<T> suppressEquality() {
         Var<T> suppressed = new Var<>(value, true);
-        Fun.suppressEquality(this, suppressed);
+        Fun.suppressEquality(this, suppressed).attach();
         return suppressed;
     }
 
-    public<V extends T> Var<T> assign(ValueProducer<V> vp) {
-        Fun.assign(vp, this).press(true);
-        return this;
+    public<V extends T> Fun assign(ValueProducer<V> vp) {
+        Fun fun = Fun.assign(vp, this);
+        fun.attach(true);
+        return fun;
     }
 
-    public<V extends T> Var<T> assign(Subject sub) {
+    public Subject assign(Subject sub) {
         if(sub.settled()) {
             Fun fun = new Fun(sub, Suite.set(Var.OWN_VALUE, this), s -> Suite.set(Var.OWN_VALUE, s.direct()));
-            fun.reduce(true);
+            fun.attach();
+            return Suite.set(fun);
         }
-        return this;
+        return Suite.set();
     }
 
     public Fun compose(Fluid components, Action recipe, Object resultKey) {
-        return Fun.compose(ValueProducer.prepareComponents(components, this), Suite.set(resultKey, this), recipe);
+        Fun fun = Fun.compose(ValueProducer.prepareComponents(components, this), Suite.set(resultKey, this), recipe);
+        fun.attach();
+        return fun;
     }
 
     public Fun compose(Fluid components, Function<Subject, T> recipe) {
-        return Fun.compose(ValueProducer.prepareComponents(components, this), Suite.set(OWN_VALUE, this),
+        Fun fun = Fun.compose(ValueProducer.prepareComponents(components, this), Suite.set(OWN_VALUE, this),
                 s -> Suite.set(OWN_VALUE, recipe.apply(s)));
+        fun.attach();
+        return fun;
     }
 
     public BeltFun express(Fluid components, Exp expression) {
-        return BeltFun.express(ValueProducer.prepareComponents(components, this),
+        BeltFun fun = BeltFun.express(ValueProducer.prepareComponents(components, this),
                 Suite.add(this), expression);
+        fun.attach();
+        return fun;
     }
 
     private BeltFun express(Fluid components, String expression) {
-        return BeltFun.express(ValueProducer.prepareComponents(components, this),
+        BeltFun fun = BeltFun.express(ValueProducer.prepareComponents(components, this),
                 Suite.add(this), expression);
+        fun.attach();
+        return fun;
     }
 
     public BeltFun express(Fluid components, Action recipe) {
-        return BeltFun.compose(ValueProducer.prepareComponents(components, this), Suite.set(this), recipe);
+        BeltFun fun = BeltFun.compose(ValueProducer.prepareComponents(components, this), Suite.set(this), recipe);
+        fun.attach();
+        return fun;
     }
 
     public WeakVar<T> weak() {

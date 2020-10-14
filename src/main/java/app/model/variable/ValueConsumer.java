@@ -5,5 +5,4 @@ interface ValueConsumer<T> {
     boolean press(Fun fun);
     void set(T value, Fun fun);
     void attachInput(Fun fun);
-    void detachInput(Fun fun);
 }

@@ -1,6 +1,5 @@
 package app.model.variable;
 
-import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.util.Fluid;
 

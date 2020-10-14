@@ -28,31 +28,40 @@ public class Monitor implements ValueConsumer<Object>, ValueProducer<Boolean> {
     }
 
     public Fun intent(Fluid inputs, Subject outputs, Action action) {
-        return Fun.compose(inputs, outputs.add(this), action);
+        Fun fun = Fun.compose(inputs, outputs.add(this), action);
+        fun.attach();
+        return fun;
     }
 
     public Fun intent(Fluid inputs, Impression impression) {
-        return Fun.compose(inputs, Suite.set(this), impression);
+        Fun fun = Fun.compose(inputs, Suite.set(this), impression);
+        fun.attach();
+        return fun;
     }
 
     public <V> Fun intent(Fluid inputs, ValueConsumer<V> output, Function<Subject, V> function) {
-        return Fun.compose(inputs, Suite.set(Var.OWN_VALUE, output).set(this), s -> Suite.set(Var.OWN_VALUE, function.apply(s)));
+        Fun fun = Fun.compose(inputs, Suite.set(Var.OWN_VALUE, output).set(this), s -> Suite.set(Var.OWN_VALUE, function.apply(s)));
+        fun.attach();
+        return fun;
     }
 
     public Fun instant(Fluid inputs, Subject outputs, Action action) {
         Fun fun = Fun.compose(inputs, outputs.add(this), action);
+        fun.attach();
         attachInstant(fun);
         return fun;
     }
 
     public Fun instant(Fluid inputs, Impression impression) {
         Fun fun = Fun.compose(inputs, Suite.set(this), impression);
+        fun.attach();
         attachInstant(fun);
         return fun;
     }
 
     public <V> Fun instant(Fluid inputs, ValueConsumer<V> output, Function<Subject, V> function) {
         Fun fun = Fun.compose(inputs, Suite.set(Var.OWN_VALUE, output).set(this), s -> Suite.set(Var.OWN_VALUE, function.apply(s)));
+        fun.attach();
         attachInstant(fun);
         return fun;
     }
@@ -108,11 +117,6 @@ public class Monitor implements ValueConsumer<Object>, ValueProducer<Boolean> {
     @Override
     public void attachInput(Fun fun) {
         if(instantInputs.get(fun).desolated()) intentInputs.set(fun);
-    }
-
-    @Override
-    public void detachInput(Fun fun) {
-        detach(fun);
     }
 
     public void detach(Fun fun) {

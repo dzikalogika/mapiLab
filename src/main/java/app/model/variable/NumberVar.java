@@ -23,19 +23,19 @@ public final class NumberVar extends Var<Number> {
 
     public static NumberVar assigned(Object that) {
         NumberVar v = new NumberVar(null, false);
-        Fun.assign(that, v).press(true);
+        Fun.assign(that, v).attach(true);
         return v;
     }
 
     public static NumberVar compound(Number value, Fluid components, Action recipe, Object resultKey) {
         NumberVar composite = new NumberVar(value, false);
-        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(resultKey, composite), recipe);
+        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(resultKey, composite), recipe).attach();
         return composite;
     }
 
     public static NumberVar compound(Fluid components, Action recipe, Object resultKey) {
         NumberVar composite = new NumberVar(null, false);
-        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(resultKey, composite), recipe).press(true);
+        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(resultKey, composite), recipe).attach(true);
         return composite;
     }
 
@@ -43,45 +43,45 @@ public final class NumberVar extends Var<Number> {
     public static NumberVar compound(Number value, Fluid components, Function<Subject, Number> recipe) {
         NumberVar composite = new NumberVar(value, false);
         Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(OWN_VALUE, composite),
-                s -> Suite.set(OWN_VALUE, recipe.apply(s)));
+                s -> Suite.set(OWN_VALUE, recipe.apply(s))).attach();
         return composite;
     }
 
     public static NumberVar compound(Fluid components, Function<Subject, Number> recipe) {
         NumberVar composite = new NumberVar(null, false);
         Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(OWN_VALUE, composite),
-                s -> Suite.set(OWN_VALUE, recipe.apply(s))).press(true);
+                s -> Suite.set(OWN_VALUE, recipe.apply(s))).attach(true);
         return composite;
     }
 
     public static NumberVar expressed(Fluid components, Exp expression) {
         NumberVar composite = new NumberVar(null, false);
         BeltFun.express(ValueProducer.prepareComponents(components, composite),
-                Suite.add(composite), expression).press(true);
+                Suite.add(composite), expression).attach(true);
         return composite;
     }
 
     public static NumberVar expressed(Fluid components, String expression) {
         NumberVar composite = new NumberVar(null, false);
         BeltFun.express(ValueProducer.prepareComponents(components, composite),
-                Suite.add(composite), expression).press(true);
+                Suite.add(composite), expression).attach(true);
         return composite;
     }
 
     public static NumberVar expressed(Number value, Fluid components, Action recipe) {
         NumberVar composite = new NumberVar(value, false);
-        BeltFun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(composite), recipe);
+        BeltFun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(composite), recipe).attach();
         return composite;
     }
 
     public static NumberVar expressed(Fluid components, Action recipe) {
         NumberVar composite = new NumberVar(null, false);
-        BeltFun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(composite), recipe).press(true);
+        BeltFun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(composite), recipe).attach(true);
         return composite;
     }
 
     public static NumberVar expressed(String e, Object ... params) {
-        return expressed(Exp.params(params), e);
+        return expressed( Playground.abc(params), e);
     }
 
     public static NumberVar expressed(String e, Fluid params) {
@@ -89,15 +89,15 @@ public final class NumberVar extends Var<Number> {
     }
 
     public static NumberVar add(Object a, Object b) {
-        return expressed(Exp.params(a, b), Exp::add);
+        return expressed( Playground.abc(a, b), Exp::add);
     }
 
     public static NumberVar sum(Object ... o) {
-        return expressed(Exp.params(o), Exp::sum);
+        return expressed( Playground.abc(o), Exp::sum);
     }
 
     public static NumberVar difference(Object a, Object b) {
-        return expressed(Exp.params(a, b), Exp::sub);
+        return expressed( Playground.abc(a, b), Exp::sub);
     }
 
     public NumberVar(Number value, boolean instant) {

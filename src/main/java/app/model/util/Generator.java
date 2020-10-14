@@ -1,12 +1,12 @@
 package app.model.util;
 
-import suite.suite.util.FluidIterator;
-import suite.suite.util.FluidObject;
+import suite.suite.util.Slime;
+import suite.suite.util.Wave;
 
 public class Generator {
 
-    public static FluidObject<String> alpha() {
-        return () -> new FluidIterator<>() {
+    public static Slime<String> alphas() {
+        return () -> new Wave<>() {
             char ch = 'a';
 
             @Override
@@ -21,8 +21,8 @@ public class Generator {
         };
     }
 
-    public static FluidObject<Integer> integers() {
-        return () -> new FluidIterator<>() {
+    public static Slime<Integer> integers() {
+        return () -> new Wave<>() {
             int i = 0;
 
             @Override

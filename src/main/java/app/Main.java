@@ -6,8 +6,6 @@ import app.model.util.TSuite;
 import app.model.variable.*;
 import suite.suite.Subject;
 import suite.suite.Suite;
-import suite.suite.action.Action;
-import suite.suite.action.Impression;
 import suite.suite.action.Statement;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -48,25 +46,26 @@ public class Main extends Window {
         NumberVar w = NumberVar.emit(60);
         NumberVar h = NumberVar.emit(60);
 
-        place(Rectangle.sketch().
+        place(rect().
                 sides(50, 200, 50, 50).
                 color(0.2, 0.5, 0.8).
-                place(Rectangle.sketch().
+                place(rect().
                         center(xs, ys).
                         dim(w, h).
                         color(r, g, b).
                         set("face", 0.4).
-                        set(Rectangle.$MOUSE_ENTER, (Statement) () -> {
-                            r.set(1 - r.getFloat());
-                            g.set(1 - g.getFloat());
-                            b.set(1 - b.getFloat());
+                        set(Rectangle.$MOUSE_IN, rect().color(0.2, 0.5, 0.5)).
+                        set(Rectangle.$MOUSE_PRESS, (Statement) () -> {
+                            r.set(0.5);
+                            g.set(0.5);
+                            b.set(0.5);
                         }).
-                        set(Rectangle.$MOUSE_LEAVE, (Statement) () -> {
-                            r.set(1 - r.getFloat());
-                            g.set(1 - g.getFloat());
-                            b.set(1 - b.getFloat());
+                        set(Rectangle.$MOUSE_RELEASE, (Statement) () -> {
+                            r.set(1);
+                            g.set(1);
+                            b.set(1);
                         })).
-                place(Rectangle.sketch().
+                place(rect().
                         center(NumberVar.sum(xs, 100, ys), ys).
                         dim(w, h).
                         color(NumberVar.difference(1, r), g, b).
@@ -80,7 +79,7 @@ public class Main extends Window {
                 redColor(200).
                 blueColor(200)));
 
-        instant(TSuite.params(mouse.getPosition()), text.getContent(), Subject::asString);
+        instant(TSuite.num(mouse.getPosition()), text.getContent(), Subject::asString);
 
         instant(Suite.set(keyboard.getKey(GLFW_KEY_Z).getPressed().select((b0, b1) -> b1)).set(textH.weak()), textH, s -> s.recent().asInt() + 10);
 

@@ -35,10 +35,6 @@ public abstract class Exp implements Action {
         }
     }
 
-    public static Fluid params(Object ... objects) {
-        return Fluid.engage(Generator.alpha(), Arrays.asList(objects));
-    }
-
     public static Subject sin(Subject s) {
         return Suite.set(Math.sin(s.asDouble()));
     }
