@@ -1,9 +1,7 @@
 package app.model;
 
 import app.model.variable.Monitor;
-import app.model.variable.NumberVar;
 import jorg.jorg.Jorg;
-import suite.suite.Suite;
 
 
 import static org.lwjgl.opengl.GL30.*;
@@ -13,10 +11,7 @@ public class ColorOutfit extends GLObject implements Outfit {
     public static final Shader defaultShader = Jorg.withRecipe(Shader::form).read(
             Shader.class.getClassLoader().getResourceAsStream("jorg/colorShader.jorg"));
 
-    final NumberVar red = NumberVar.emit(0.5);
-    final NumberVar green = NumberVar.emit(0.5);
-    final NumberVar blue = NumberVar.emit(0.5);
-    final NumberVar alpha = NumberVar.emit(1);
+    Color color;
 
     private int indicesLength = 0;
     private final int vertexGlid;
@@ -42,7 +37,7 @@ public class ColorOutfit extends GLObject implements Outfit {
     }
 
     public Monitor getVertexMonitor() {
-        return Monitor.compose(false, Suite.set(red).set(green).set(blue).set(alpha));
+        return color.monitor();
     }
 
     public int getDimension() {
@@ -50,7 +45,7 @@ public class ColorOutfit extends GLObject implements Outfit {
     }
 
     public void updateVertex(float[] vertex) {
-        float r = red.getFloat(), g = green.getFloat(), b = blue.getFloat(), a = alpha.getFloat();
+        float r = color.red.getFloat(), g = color.green.getFloat(), b = color.blue.getFloat(), a = color.alpha.getFloat();
         for(int i = 6;i < vertex.length;i += 7) {
             vertex[i] = a;
             vertex[i-1] = b;
@@ -72,21 +67,5 @@ public class ColorOutfit extends GLObject implements Outfit {
         defaultShader.use();
         glBindVertexArray(getGlid());
         glDrawElements(GL_TRIANGLES, indicesLength, GL_UNSIGNED_INT, 0);
-    }
-
-    public NumberVar getRed() {
-        return red;
-    }
-
-    public NumberVar getGreen() {
-        return green;
-    }
-
-    public NumberVar getBlue() {
-        return blue;
-    }
-
-    public NumberVar getAlpha() {
-        return alpha;
     }
 }

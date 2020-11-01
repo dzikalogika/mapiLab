@@ -1,11 +1,13 @@
 package app.model.variable;
 
 import app.model.util.Generator;
+import suite.sets.Sets;
 import suite.suite.Sub;
 import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.action.Action;
 import suite.suite.action.Impression;
+import suite.suite.action.Statement;
 import suite.suite.util.Fluid;
 
 import java.util.Arrays;
@@ -15,15 +17,19 @@ public abstract class Playground {
 
     protected Monitor eventRoot = new Monitor();
 
-    public Fun intent(Fluid inputs, Subject outputs, Action action) {
+    public Fun intent(Fluid inputs, Fluid outputs, Action action) {
         return eventRoot.intent(inputs, outputs, action);
+    }
+
+    public Fun intent(Fluid inputs, Statement statement) {
+        return eventRoot.intent(inputs, statement);
     }
 
     public Fun intent(Fluid inputs, Impression impression) {
         return eventRoot.intent(inputs, impression);
     }
 
-    public <V> Fun intent(Fluid inputs, ValueConsumer<V> output, Function<Subject, V> function) {
+    public <V> Fun intent(Fluid inputs, ValueConsumer output, Function<Subject, V> function) {
         return eventRoot.intent(inputs, output, function);
     }
 
@@ -35,7 +41,7 @@ public abstract class Playground {
         return eventRoot.instant(inputs, impression);
     }
 
-    public <V> Fun instant(Fluid inputs, ValueConsumer<V> output, Function<Subject, V> function) {
+    public <V> Fun instant(Fluid inputs, ValueConsumer output, Function<Subject, V> function) {
         return eventRoot.instant(inputs, output, function);
     }
 
@@ -77,16 +83,7 @@ public abstract class Playground {
         return new Sub<>();
     }
 
-    public static Subject insec(Subject source, Object ... keys) {
-        Subject result = Suite.set();
-        for(Object k : keys) {
-            result.inset(source.get(k));
-        }
-        return result;
-    }
-
     public static boolean in(Subject source, Object ... keys) {
-        Subject result = Suite.set();
         for(Object it : keys) {
             if(source.get(it).desolated()) return false;
         }

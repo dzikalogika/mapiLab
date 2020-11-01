@@ -10,7 +10,7 @@ public class WeakVar<T> implements ValueProducer<T> {
 
     @Override
     public T get(Fun fun) {
-        return var.value;
+        return var.value();
     }
 
     @Override

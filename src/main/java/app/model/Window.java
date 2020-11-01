@@ -4,7 +4,6 @@ import app.model.input.Keyboard;
 import app.model.input.Mouse;
 import app.model.util.PercentParcel;
 import app.model.util.PixelParcel;
-import app.model.util.TSuite;
 import app.model.variable.*;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
@@ -40,7 +39,6 @@ public class Window extends Composite {
         glfwShowWindow(window.getGlid());
 
         glfwSwapInterval(1);
-        System.out.println(window.components);
 
         while(windows.settled())
         {
@@ -78,7 +76,7 @@ public class Window extends Composite {
             window.greenColor.set(green);
             window.blueColor.set(blue);
             window.alphaColor.set(1);
-            window.intent(TSuite.num(window.redColor, window.greenColor, window.blueColor, window.alphaColor), s -> {
+            window.intent(num(window.redColor, window.greenColor, window.blueColor, window.alphaColor), s -> {
                 glClearColor(s.asFloat(), s.get(1).asFloat(), s.get(2).asFloat(), s.get(3).asFloat());
             }).press(true);
 
@@ -164,9 +162,9 @@ public class Window extends Composite {
     private static final Exp textExpLeftTop = Exp.compile("a * b / 100");
     private static final Exp textExpRightBottom = Exp.compile("a - a * b / 100");
 
-    public Text text(Subject sub) {
+    Subject textTransform(Subject sketch) {
         Subject r = Suite.set();
-        for(var s : sub) {
+        for(var s : sketch) {
             var k = s.key().direct();
             if(k == Side.LEFT || k == Side.RIGHT || k == Pos.HORIZONTAL_CENTER) {
                 if(s.assigned(PixelParcel.class)) {
@@ -178,9 +176,9 @@ public class Window extends Composite {
                     PercentParcel percentParcel = s.asExpected();
                     var wb = percentParcel.waybill;
                     if(wb == null || wb == Side.LEFT) r.set(k, NumberVar.expressed(
-                            Exp.params(width, percentParcel.ware), textExpLeftTop));
+                            abc(width, percentParcel.ware), textExpLeftTop));
                     else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed(
-                            Exp.params(width, percentParcel.ware), textExpRightBottom));
+                            abc(width, percentParcel.ware), textExpRightBottom));
                 }
             } else if(k == Side.BOTTOM || k == Side.TOP || k == Pos.VERTICAL_CENTER) {
                 if(s.assigned(PixelParcel.class)) {
@@ -192,14 +190,14 @@ public class Window extends Composite {
                     PercentParcel percentParcel = s.asExpected();
                     var wb = percentParcel.waybill;
                     if(wb == null || wb == Side.TOP) r.set(k, NumberVar.expressed(
-                            Exp.params(height, percentParcel.ware), textExpLeftTop));
+                            abc(height, percentParcel.ware), textExpLeftTop));
                     else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed(
-                            Exp.params(height, percentParcel.ware), textExpRightBottom));
+                            abc(height, percentParcel.ware), textExpRightBottom));
                 }
             } else r.inset(s);
         }
         r.put("pw", width).put("ph", height);
-        return Text.form(r);
+        return r;
     }
 
     private static final Exp rectExpLeftBottom = Exp.compile("a * 2 / b - 1");
@@ -209,75 +207,69 @@ public class Window extends Composite {
     private static final Exp rectExpPercentRightTop = Exp.compile("1 - a / 50");
     private static final Exp rectExpPercentWidthHeight = Exp.compile("a / 50");
 
-    public Rectangle.Sketch<?> rect() {
-        return Rectangle.sketch();
-    }
-
-    public Rectangle rect(Subject sub) {
+    Subject rectTransform(Subject sketch) {
         Subject r = Suite.set();
-        for(var s : sub) {
+        for(var s : sketch) {
             var k = s.key().direct();
             if(k == Pos.HORIZONTAL_CENTER || k == Side.LEFT || k == Side.RIGHT) {
                 if(s.assigned(PixelParcel.class)) {
                     PixelParcel pixelParcel = s.asExpected();
                     var wb = pixelParcel.waybill;
                     if(wb == null || wb == Side.LEFT) r.set(k, NumberVar.expressed(
-                            Exp.params(pixelParcel.ware, width), rectExpLeftBottom));
+                            abc(pixelParcel.ware, width), rectExpLeftBottom));
                     else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed(
-                            Exp.params(pixelParcel.ware, width), rectExpRightTop));
+                            abc(pixelParcel.ware, width), rectExpRightTop));
                 } else if(s.assigned(PercentParcel.class)) {
                     PercentParcel percentParcel = s.asExpected();
                     var wb = percentParcel.waybill;
                     if(wb == null || wb == Side.LEFT) r.set(k, NumberVar.expressed(
-                            Exp.params(percentParcel.ware), rectExpPercentLeftBottom));
+                            abc(percentParcel.ware), rectExpPercentLeftBottom));
                     else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed(
-                            Exp.params(percentParcel.ware), rectExpPercentRightTop));
+                            abc(percentParcel.ware), rectExpPercentRightTop));
                 }
             } else if(k == Pos.VERTICAL_CENTER || k == Side.TOP || k == Side.BOTTOM) {
                 if(s.assigned(PixelParcel.class)) {
                     PixelParcel pixelParcel = s.asExpected();
                     var wb = pixelParcel.waybill;
                     if(wb == null || wb == Side.TOP) r.set(k, NumberVar.expressed(
-                            Exp.params(pixelParcel.ware, height), rectExpRightTop));
+                            abc(pixelParcel.ware, height), rectExpRightTop));
                     else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed(
-                            Exp.params(pixelParcel.ware, height), rectExpLeftBottom));
+                            abc(pixelParcel.ware, height), rectExpLeftBottom));
                 } else if(s.assigned(PercentParcel.class)) {
                     PercentParcel percentParcel = s.asExpected();
                     var wb = percentParcel.waybill;
                     if(wb == null || wb == Side.TOP) r.set(k, NumberVar.expressed(
-                            Exp.params(percentParcel.ware), rectExpPercentRightTop));
+                            abc(percentParcel.ware), rectExpPercentRightTop));
                     else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed(
-                            Exp.params(percentParcel.ware), rectExpPercentLeftBottom));
+                            abc(percentParcel.ware), rectExpPercentLeftBottom));
                 }
             } else if(k == Dim.WIDTH) {
                 if(s.assigned(PixelParcel.class)) {
                     PixelParcel pixelParcel = s.asExpected();
                     var wb = pixelParcel.waybill;
                     if(wb == null) r.set(Dim.WIDTH, NumberVar.expressed(
-                            Exp.params(pixelParcel.ware, width), rectExpWidthHeight));
+                            abc(pixelParcel.ware, width), rectExpWidthHeight));
                 } else if(s.assigned(PercentParcel.class)) {
                     PercentParcel percentParcel = s.asExpected();
                     var wb = percentParcel.waybill;
                     if(wb == null) r.set(Dim.WIDTH, NumberVar.expressed(
-                            Exp.params(percentParcel.ware), rectExpPercentWidthHeight));
+                            abc(percentParcel.ware), rectExpPercentWidthHeight));
                 }
             } else if(k == Dim.HEIGHT) {
                 if(s.assigned(PixelParcel.class)) {
                     PixelParcel pixelParcel = s.asExpected();
                     var wb = pixelParcel.waybill;
                     if(wb == null) r.set(Dim.HEIGHT, NumberVar.expressed(
-                            Exp.params(pixelParcel.ware, height), rectExpWidthHeight));
+                            abc(pixelParcel.ware, height), rectExpWidthHeight));
                 } else if(s.assigned(PercentParcel.class)) {
                     PercentParcel percentParcel = s.asExpected();
                     var wb = percentParcel.waybill;
                     if(wb == null) r.set(Dim.HEIGHT, NumberVar.expressed(
-                            Exp.params(percentParcel.ware), rectExpPercentWidthHeight));
+                            abc(percentParcel.ware), rectExpPercentWidthHeight));
                 }
             } else r.inset(s);
         }
         r.put(Composite.class, this).put(Window.class, this);
-        Rectangle rect = Rectangle.form(r);
-
-        return rect;
+        return r;
     }
 }

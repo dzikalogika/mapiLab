@@ -11,12 +11,14 @@ public class BeltFun extends Fun {
 
     public static BeltFun compose(Fluid inputs, Fluid outputs, Action transition) {
         BeltFun fun = new BeltFun(inputs, outputs, transition);
+        fun.attach();
         if(fun.detection) fun.press(false);
         return fun;
     }
 
     public static BeltFun express(Fluid inputs, Fluid outputs, Exp expression) {
         BeltFun fun = new BeltFun(inputs, outputs, expression);
+        fun.attach();
         if(fun.detection) fun.press(false);
         return fun;
     }
@@ -37,8 +39,8 @@ public class BeltFun extends Fun {
             Subject outputParams = transition.play(inputParams);
             for (var s : Fluid.engage(outputParams.values(), outputs.front().values())) {
                 if(s.assigned(WeakReference.class)) {
-                    WeakReference<ValueConsumer<?>> ref = s.asExpected();
-                    ValueConsumer<?> vc = ref.get();
+                    WeakReference<ValueConsumer> ref = s.asExpected();
+                    ValueConsumer vc = ref.get();
                     if (vc != null) vc.set(s.key().asExpected(), this);
                 }
             }
@@ -47,8 +49,8 @@ public class BeltFun extends Fun {
 
     boolean cycleTest(Fun fun) {
         for(var s : outputs) {
-            WeakReference<ValueConsumer<?>> ref = s.asExpected();
-            ValueConsumer<?> v = ref.get();
+            WeakReference<ValueConsumer> ref = s.asExpected();
+            ValueConsumer v = ref.get();
             if(v instanceof Var && ((Var<?>) v).cycleTest(fun)) return true;
         }
         return false;

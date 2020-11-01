@@ -2,7 +2,6 @@ package app;
 
 import app.model.*;
 import app.model.input.Keyboard;
-import app.model.util.TSuite;
 import app.model.variable.*;
 import suite.suite.Subject;
 import suite.suite.Suite;
@@ -34,63 +33,54 @@ public class Main extends Window {
 
     @Override
     protected void ready() {
-        Text text;
 
         NumberVar textH = NumberVar.emit(50);
 
-        NumberVar r = NumberVar.emit(1);
+        NumberVar r = NumberVar.emit(0);
         NumberVar g = NumberVar.emit(1);
         NumberVar b = NumberVar.emit(1);
-        NumberVar xs = NumberVar.emit(0);
-        NumberVar ys = NumberVar.emit(0);
+        NumberVar xs = NumberVar.emit(50);
+        NumberVar ys = NumberVar.emit(50);
         NumberVar w = NumberVar.emit(60);
         NumberVar h = NumberVar.emit(60);
 
-        place(rect().
-                sides(50, 200, 50, 50).
-                color(0.2, 0.5, 0.8).
+        Rectangle rect = new Rectangle();
+
+        place(rect(rect).
+                sides(100, 10, 10, 50).
+                color(0.2, 0.5, 0.5).
                 place(rect().
-                        center(xs, ys).
-                        dim(w, h).
                         color(r, g, b).
                         set("face", 0.4).
-                        set(Rectangle.$MOUSE_IN, rect().color(0.2, 0.5, 0.5)).
-                        set(Rectangle.$MOUSE_PRESS, (Statement) () -> {
-                            r.set(0.5);
-                            g.set(0.5);
-                            b.set(0.5);
-                        }).
-                        set(Rectangle.$MOUSE_RELEASE, (Statement) () -> {
-                            r.set(1);
-                            g.set(1);
-                            b.set(1);
-                        })).
-                place(rect().
-                        center(NumberVar.sum(xs, 100, ys), ys).
-                        dim(w, h).
-                        color(NumberVar.difference(1, r), g, b).
-                        set("face", 0.4)));
+                        place(rect().
+                                sides(5, 5, 5, 5).
+                                color(0.1, 0.1, 0.1).
+                                set("face", 0.3)
+                        )
+                )
+        );
 
-        place(text = text(Text.sketch().
-                horizontalCenter(50, Unit.PERCENT).
-                verticalCenter(50, Unit.PERCENT).
+        Text text = new Text();
+        place(text(text).
+                horizontalCenter(xs, Unit.PERCENT).
+                verticalCenter(ys, Unit.PERCENT).
                 height(textH).
                 content("W").
                 redColor(200).
-                blueColor(200)));
+                blueColor(200));
 
-        instant(TSuite.num(mouse.getPosition()), text.getContent(), Subject::asString);
+        instant(num(mouse.getPosition()), text.content(), Subject::asString);
 
         instant(Suite.set(keyboard.getKey(GLFW_KEY_Z).getPressed().select((b0, b1) -> b1)).set(textH.weak()), textH, s -> s.recent().asInt() + 10);
 
-        instant(Suite.set(keyboard.getCharEvent()).set(text.getContent().weak()), text.getContent(), s -> {
+        instant(Suite.set(keyboard.getCharEvent()).set(text.content().weak()), text.content(), s -> {
             Keyboard.CharEvent e = s.asExpected();
             String content = s.recent().asString();
             return new StringBuilder(content).appendCodePoint(e.getCodepoint()).toString();
         });
 
-        Fun t1 = instant(Suite.set(text.getContent().weak()).set(keyboard.getKey(GLFW_KEY_BACKSPACE).
-                getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), text.getContent(), s -> {
+        Fun t1 = instant(Suite.set(text.content().weak()).set(keyboard.getKey(GLFW_KEY_BACKSPACE).
+                getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), text.content(), s -> {
             String content = s.asString();
             return content.length() > 0 ? content.substring(0, content.length() - 1) : "";
         });
@@ -106,16 +96,16 @@ public class Main extends Window {
         });
 
         instant(Suite.set(xs.weak()).set(keyboard.getKey(GLFW_KEY_LEFT).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), xs,
-                s -> s.asInt() - 10);
+                s -> s.asInt() -1);
 
         instant(Suite.set(xs.weak()).set(keyboard.getKey(GLFW_KEY_RIGHT).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), xs,
-                s -> s.asInt() + 10);
+                s -> s.asInt() +1);
 
         instant(Suite.set(ys.weak()).set(keyboard.getKey(GLFW_KEY_DOWN).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), ys,
-                s -> s.asInt() - 10);
+                s -> s.asInt() +1);
 
         instant(Suite.set(ys.weak()).set(keyboard.getKey(GLFW_KEY_UP).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), ys,
-                s -> s.asInt() + 10);
+                s -> s.asInt() -1);
 
         instant(Suite.set(w.weak()).set(keyboard.getKey(GLFW_KEY_W).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), w,
                 s -> keyboard.getKey(GLFW_KEY_LEFT_SHIFT).getPressed().get() ? s.asInt() + 10 : s.asInt() - 10);

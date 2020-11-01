@@ -8,6 +8,7 @@ import suite.suite.Suite;
 
 public abstract class Composite extends Component {
     public static Object COMPONENTS = new Object();
+    public static Object INSTANCE = new Object();
 
     final Subject components = Suite.set();
 
@@ -18,22 +19,34 @@ public abstract class Composite extends Component {
     }
 
     public void place(Component component) {
-        place(component, component);
+        components.set(component);
     }
 
-    public void place(Object key, Component component) {
-        System.out.println(component);
-        components.set(key, component);
-    }
+    public void place(Subject sketch) {
 
-    public void place(Object key, Subject sketch) {
-        Class<?> subtype = sketch.get(AbstractSketch.MODEL).orGiven(null);
-//        if(subtype == Button.class) place(key, button(sketch));
-        if(subtype == Rectangle.class) place(key, rect(sketch));
-        if(subtype == Text.class) place(key, text(sketch));
-    }
-    public  void place(Subject sketch) {
-        place(new Suite.AutoKey(), sketch);
+        var instance = sketch.get(INSTANCE);
+        if(instance.settled()) {
+            if(instance.assigned(Rectangle.class)) {
+                Rectangle rect = instance.asExpected();
+                rect.init(rectTransform(sketch));
+                place(rect);
+            } else if(instance.assigned(Text.class)) {
+                Text text = instance.asExpected();
+                text.init(textTransform(sketch));
+                place(text);
+            }
+        } else {
+            Class<?> modelClass = sketch.get(AbstractSketch.MODEL).asExpected();
+            if(modelClass.equals(Rectangle.class)) {
+                Rectangle rect = new Rectangle();
+                rect.init(rectTransform(sketch));
+                place(rect);
+            } else if(modelClass.equals(Text.class)) {
+                Text text = new Text();
+                text.init(textTransform(sketch));
+                place(text);
+            }
+        }
     }
 
     public  PixelParcel px(Object pixels) {
@@ -49,7 +62,23 @@ public abstract class Composite extends Component {
         return new PercentParcel(percents, base);
     }
 
-    abstract Text text(Subject sub);
-    abstract Rectangle rect(Subject sub);
+    public Text.Sketch<?> text() {
+        return Text.sketch();
+    }
+
+    public Text.Sketch<?> text(Text instance) {
+        return Text.sketch().set(INSTANCE, instance);
+    }
+
+    public Rectangle.Sketch<?> rect() {
+        return Rectangle.sketch();
+    }
+
+    public Rectangle.Sketch<?> rect(Rectangle instance) {
+        return Rectangle.sketch().set(INSTANCE, instance);
+    }
+
+    abstract Subject rectTransform(Subject sketch);
+    abstract Subject textTransform(Subject sketch);
 //    Button button(Subject sub);
 }

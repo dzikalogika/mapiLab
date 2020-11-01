@@ -9,7 +9,7 @@ import suite.suite.util.Fluid;
 import java.lang.ref.WeakReference;
 import java.util.function.Function;
 
-public class Monitor implements ValueConsumer<Object>, ValueProducer<Boolean> {
+public class Monitor implements ValueConsumer, ValueProducer<Boolean> {
 
     Subject instantInputs = Suite.set();
     Subject intentInputs = Suite.set();
@@ -23,45 +23,39 @@ public class Monitor implements ValueConsumer<Object>, ValueProducer<Boolean> {
         return monitor;
     }
 
-    public static Monitor compose(boolean pressed, Subject components) {
+    public static Monitor compose(boolean pressed, Fluid components) {
         return Monitor.compose(pressed, components, s -> {});
     }
 
-    public Fun intent(Fluid inputs, Subject outputs, Action action) {
-        Fun fun = Fun.compose(inputs, outputs.add(this), action);
-        fun.attach();
+    public Fun intent(Fluid inputs, Fluid outputs, Action action) {
+        Fun fun = Fun.compose(inputs, outputs.append(Suite.add(this)), action);
         return fun;
     }
 
     public Fun intent(Fluid inputs, Impression impression) {
         Fun fun = Fun.compose(inputs, Suite.set(this), impression);
-        fun.attach();
         return fun;
     }
 
-    public <V> Fun intent(Fluid inputs, ValueConsumer<V> output, Function<Subject, V> function) {
+    public <V> Fun intent(Fluid inputs, ValueConsumer output, Function<Subject, V> function) {
         Fun fun = Fun.compose(inputs, Suite.set(Var.OWN_VALUE, output).set(this), s -> Suite.set(Var.OWN_VALUE, function.apply(s)));
-        fun.attach();
         return fun;
     }
 
     public Fun instant(Fluid inputs, Subject outputs, Action action) {
         Fun fun = Fun.compose(inputs, outputs.add(this), action);
-        fun.attach();
         attachInstant(fun);
         return fun;
     }
 
     public Fun instant(Fluid inputs, Impression impression) {
         Fun fun = Fun.compose(inputs, Suite.set(this), impression);
-        fun.attach();
         attachInstant(fun);
         return fun;
     }
 
-    public <V> Fun instant(Fluid inputs, ValueConsumer<V> output, Function<Subject, V> function) {
+    public <V> Fun instant(Fluid inputs, ValueConsumer output, Function<Subject, V> function) {
         Fun fun = Fun.compose(inputs, Suite.set(Var.OWN_VALUE, output).set(this), s -> Suite.set(Var.OWN_VALUE, function.apply(s)));
-        fun.attach();
         attachInstant(fun);
         return fun;
     }

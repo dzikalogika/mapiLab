@@ -18,19 +18,22 @@ public class Fun {
 
     public static Fun compose(Fluid inputs, Fluid outputs, Action transition) {
         Fun fun = new Fun(inputs, outputs, transition);
+        fun.attach();
         if(fun.detection) fun.press(false);
         return fun;
     }
 
-    public static<T> Fun assign(Object source, ValueConsumer<T> target) {
+    public static<T> Fun assign(Object source, ValueConsumer target) {
         Fun fun = new Fun(Suite.set(source), Suite.set(Var.OWN_VALUE, target), s -> Suite.set(Var.OWN_VALUE, s.direct()));
-        if(fun.detection) fun.press(false);
+        fun.attach();
+        fun.press(true);
         return fun;
     }
 
     public static<T, T1 extends T> Fun select(ValueProducer<T1> source, Var<T> target, BiPredicate<T1, T> selector) {
         Fun fun = new Fun(Suite.set(Var.OWN_VALUE, source).set(target.weak()), Suite.set(Var.OWN_VALUE, target),
                 s -> selector.test(s.recent().asExpected(), s.asExpected()) ? s : Suite.set());
+        fun.attach();
         if(fun.detection) fun.press(false);
         return fun;
     }
@@ -38,6 +41,7 @@ public class Fun {
     public static<T, T1 extends T> Fun suppress(ValueProducer<T1> source, Var<T> target, BiPredicate<T1, T> suppressor) {
         Fun fun = new Fun(Suite.set(Var.OWN_VALUE, source).set(target.weak()), Suite.set(Var.OWN_VALUE, target),
                 s -> suppressor.test(s.recent().asExpected(), s.asExpected()) ? Suite.set() : s);
+        fun.attach();
         if(fun.detection) fun.press(false);
         return fun;
     }
@@ -45,6 +49,7 @@ public class Fun {
     public static<T, T1 extends T> Fun suppressIdentity(ValueProducer<T1> source, Var<T> target) {
         Fun fun = new Fun(Suite.set(Var.OWN_VALUE, source).set(target.weak()), Suite.set(Var.OWN_VALUE, target),
                 s -> s.direct() == s.recent().direct() ? Suite.set() : s);
+        fun.attach();
         if(fun.detection) fun.press(false);
         return fun;
     }
@@ -52,12 +57,14 @@ public class Fun {
     public static<T, T1 extends T> Fun suppressEquality(ValueProducer<T1> source, Var<T> target) {
         Fun fun = new Fun(Suite.set(Var.OWN_VALUE, source).set(target.weak()), Suite.set(Var.OWN_VALUE, target),
                 s -> Objects.equals(s.direct(), s.recent().direct()) ? Suite.set() : s);
+        fun.attach();
         if(fun.detection) fun.press(false);
         return fun;
     }
 
     public static Fun express(Fluid inputs, Fluid outputs, Exp expression) {
         Fun fun = new Fun(inputs, outputs, expression);
+        fun.attach();
         if(fun.detection) fun.press(false);
         return fun;
     }
@@ -88,7 +95,7 @@ public class Fun {
         this.outputs = Suite.set();
         for(var s : outputs) {
             if(s.assigned(ValueConsumer.class)) {
-                ValueConsumer<?> vc = s.asExpected();
+                ValueConsumer vc = s.asExpected();
                 if(vc instanceof Var && ((Var<?>) vc).cycleTest(this))
                     throw new RuntimeException("Illegal cycle detected");
                 vc.attachInput(this);
@@ -108,8 +115,8 @@ public class Fun {
                 var key = s.key().direct();
                 var output = outputs.get(key);
                 if (output.settled()) {
-                    WeakReference<ValueConsumer<?>> ref = output.asExpected();
-                    ValueConsumer<?> vc = ref.get();
+                    WeakReference<ValueConsumer> ref = output.asExpected();
+                    ValueConsumer vc = ref.get();
                     if(vc == null) {
                         outputs.unset(key);
                     } else {
@@ -124,8 +131,8 @@ public class Fun {
         if(detection) return false;
         if(direct)detection = true;
         for(var s : outputs) {
-            WeakReference<ValueConsumer<?>> ref = s.asExpected();
-            ValueConsumer<?> var = ref.get();
+            WeakReference<ValueConsumer> ref = s.asExpected();
+            ValueConsumer var = ref.get();
             if(var != null && var.press(this)) return true;
         }
         return false;
@@ -186,8 +193,8 @@ public class Fun {
 
     boolean cycleTest(Fun fun) {
         for(var s : outputs) {
-            WeakReference<ValueConsumer<?>> ref = s.asExpected();
-            ValueConsumer<?> v = ref.get();
+            WeakReference<ValueConsumer> ref = s.asExpected();
+            ValueConsumer v = ref.get();
             if(v == null){
                 outputs.unset(s.key().direct());
             } else if(v instanceof Var && ((Var<?>) v).cycleTest(fun)) return true;

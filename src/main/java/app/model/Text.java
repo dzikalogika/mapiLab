@@ -1,7 +1,6 @@
 package app.model;
 
 import app.model.util.PixelParcel;
-import app.model.util.TSuite;
 import app.model.variable.*;
 import org.joml.Matrix4f;
 import suite.suite.Subject;
@@ -15,10 +14,6 @@ public class Text extends Component {
     public static final Object CONTENT = new Object();
     public static final Object SHADER = new Object();
     public static final Object GRAPHIC = new Object();
-
-    public static Text form(Subject sub) {
-        return new Text(sub);
-    }
 
     private final Subject weakParams = Suite.wonky();
     final Var<String> content = SimpleVar.emit("");
@@ -38,13 +33,12 @@ public class Text extends Component {
     final Monitor projectionMonitor;
     final Monitor colorMonitor;
 
-    public Text(Subject sub) {
-        this();
+    public void init(Subject sub) {
         Subject s;
         content.assign(sub.get(CONTENT));
         left.assign(sub.get(Side.LEFT));
         if((s = sub.get(Pos.HORIZONTAL_CENTER)).settled()) {
-            left.compose(TSuite.num(graphicModel, size, content, s.direct()), su -> {
+            left.compose(num(graphicModel, size, content, s.direct()), su -> {
                 TextGraphic textGraphic = su.get(0).asExpected();
                 float size = su.get(1).asFloat();
                 String txt = su.get(2).asString();
@@ -53,7 +47,7 @@ public class Text extends Component {
             });
         }
         if((s = sub.get(Pos.VERTICAL_CENTER)).settled()) {
-            bottom.compose(TSuite.num(size, s.direct()), su -> {
+            bottom.compose(num(size, s.direct()), su -> {
                 float size = su.get(0).asFloat();
                 float y = su.get(1).asFloat();
                 return y + size / 3;
@@ -90,7 +84,6 @@ public class Text extends Component {
         if(projectionMonitor.release()) {
             sh.set("projection", new Matrix4f().ortho2D(0f, projectionWidth.getFloat(), 0f, projectionHeight.getFloat()));
             TextGraphic textGraphic = graphicModel.get();
-            System.out.println(textGraphic.getStringWidth(content.get(), size.getFloat()));
         }
         glActiveTexture(GL_TEXTURE0);
         if(colorMonitor.release()) {
@@ -102,53 +95,49 @@ public class Text extends Component {
                 size.getFloat(), projectionHeight.getFloat());
     }
 
-    public Var<String> getContent() {
+    public Var<String> content() {
         return content;
     }
 
-    public NumberVar getLeft() {
+    public NumberVar left() {
         return left;
     }
 
-    public NumberVar getBottom() {
+    public NumberVar bottom() {
         return bottom;
     }
 
-    public NumberVar getSize() {
+    public NumberVar size() {
         return size;
     }
 
-    public NumberVar getRedColor() {
+    public NumberVar redColor() {
         return redColor;
     }
 
-    public NumberVar getGreenColor() {
+    public NumberVar greenColor() {
         return greenColor;
     }
 
-    public NumberVar getBlueColor() {
+    public NumberVar blueColor() {
         return blueColor;
     }
 
-    public NumberVar getAlphaColor() {
+    public NumberVar alphaColor() {
         return alphaColor;
     }
 
-    public Var<TextGraphic> getGraphicModel() {
+    public Var<TextGraphic> graphicModel() {
         return graphicModel;
     }
 
-    public NumberVar getWidth() {
-        Subject s;
-        if((s = weakParams.get(Dim.WIDTH)).settled()) return s.asExpected();
-        NumberVar w =  NumberVar.compound(TSuite.num(content, graphicModel, size), su -> {
+    public NumberVar width() {
+        return weakParams.getDone(Dim.WIDTH, () -> NumberVar.compound(num(content, graphicModel, size), su -> {
             String c = su.get(0).asExpected();
             TextGraphic g = su.get(1).asExpected();
             float size = su.get(2).asFloat();
             return g.getStringWidth(c, size);
-        });
-        weakParams.set(Dim.WIDTH, w);
-        return w;
+        })).asExpected();
     }
 
     public static Sketch<?> sketch(Subject s) {

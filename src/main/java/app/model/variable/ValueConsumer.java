@@ -1,8 +1,8 @@
 package app.model.variable;
 
-interface ValueConsumer<T> {
+interface ValueConsumer {
 
     boolean press(Fun fun);
-    void set(T value, Fun fun);
+    void set(Object value, Fun fun);
     void attachInput(Fun fun);
 }

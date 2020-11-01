@@ -73,6 +73,19 @@ public abstract class Exp implements Action {
         return Suite.set(sum);
     }
 
+    public static Subject rev(Fluid f) {
+        Subject sub = Suite.set();
+        for(var v : f) {
+            Object o = v.direct();
+            if(o instanceof Number) {
+                sub.set(v.key().direct(), -((Number)o).doubleValue());
+            } else {
+                sub.inset(v);
+            }
+        }
+        return sub;
+    }
+
     public static Subject sub(Subject s) {
         return Suite.set(s.asDouble() - s.recent().asDouble());
     }

@@ -114,19 +114,19 @@ public abstract class AbstractSketch<T extends Subject> extends SolidSubject {
     }
 
     @Override
-    public T setAll(Iterable<Object> iterable) {
+    public T setAll(Iterable<?> iterable) {
         super.setAll(iterable);
         return self();
     }
 
     @Override
-    public T putAll(Iterable<Object> iterable) {
+    public T putAll(Iterable<?> iterable) {
         super.putAll(iterable);
         return self();
     }
 
     @Override
-    public T addAll(Iterable<Object> iterable) {
+    public T addAll(Iterable<?> iterable) {
         super.addAll(iterable);
         return self();
     }

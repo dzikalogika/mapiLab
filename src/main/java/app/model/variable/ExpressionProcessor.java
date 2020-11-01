@@ -361,7 +361,9 @@ public class ExpressionProcessor implements IntProcessor {
             @Override
             public Subject play(Subject subject) {
                 for (var v : inputs.values().filter(VarNumber.class)) {
-                    v.value = subject.get(v.symbol).orGiven(null);
+                    Object o = subject.get(v.symbol).orGiven(null);
+                    if(o instanceof Number) v.value = (Number)o;
+                    else if(o instanceof Boolean) v.value = (Boolean) o ? 1 : -1;
                 }
                 for (var f : functions) {
                     String funName = f.key().asString();
