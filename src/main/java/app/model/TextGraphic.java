@@ -1,6 +1,6 @@
 package app.model;
 
-import jorg.jorg.Jorg;
+import brackettree.reader.BracketTree;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBTTFontinfo;
 import org.lwjgl.stb.STBTTAlignedQuad;
@@ -23,16 +23,21 @@ import static org.lwjgl.stb.STBTruetype.stbtt_GetFontVMetrics;
 
 public class TextGraphic {
 
-    private static final Subject sized = Suite.set();
+    private static final Subject $sized = Suite.set();
 
     public static TextGraphic getForSize(double size) {
         int s = ((int)Math.min(Math.ceil(Math.abs(size)), 191.) + 32) / 32;
-        return sized.getDone(s, () -> TextGraphic.form(Suite.set("size", s * 32))).asExpected();
+        var $tg = $sized.in(s).set();
+        if($tg.absent()) {
+            $tg.set(TextGraphic.generate(Suite.set("size", s * 32)));
+        }
+        return $tg.asExpected();
     }
 
-    static final Shader defaultShader = Jorg.withRecipe(Shader::form).read(Shader.class.getClassLoader().getResourceAsStream("jorg/textShader.jorg"));
+    static final Shader defaultShader = BracketTree.read(Shader.class.getClassLoader().
+            getResourceAsStream("jorg/textShader.jorg")).as(Shader.class);
 
-    private final Subject chars = Suite.set();
+    private final Subject $chars = Suite.set();
     private final String fontPath;
     private final int vao;
     private final int vbo;
@@ -45,9 +50,9 @@ public class TextGraphic {
     private final float lineGap;
     private final int size;
 
-    public static TextGraphic form(Subject sub) {
-        String font = sub.get("font").orGiven("ttf/trebuc.ttf");
-        int fontSize = Suite.from(sub).get("size").orGiven(24);
+    public static TextGraphic generate(Subject $sub) {
+        String font = $sub.in("font").orGiven("ttf/trebuc.ttf");
+        int fontSize = $sub.in("size").orGiven(24);
 
         return new TextGraphic(font, fontSize);
     }
@@ -115,7 +120,7 @@ public class TextGraphic {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         for(int i = firstCodePoint;i <= lastCodepoint; ++i) {
-            chars.set(i, new CharacterTexture(textureID, buffer, i - firstCodePoint));
+            $chars.set(i, new CharacterTexture(textureID, buffer, i - firstCodePoint));
         }
 
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -150,10 +155,11 @@ public class TextGraphic {
         Cascade<Integer> codePoints = new Cascade<>(text.codePoints().iterator());
 
         for(int codePoint : codePoints.toEnd()) {
-            if(chars.get(codePoint).desolated()) {
+            var $char = $chars.in(codePoint).get();
+            if($char.absent()) {
                 bake(codePoint, codePoint, bitmapWidth, bitmapHeight);
             }
-            CharacterTexture charTex = chars.get(codePoint).asExpected();
+            CharacterTexture charTex = $chars.in(codePoint).asExpected();
             float xRef = X[0];
             float yRef = Y[0];
 

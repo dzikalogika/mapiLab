@@ -1,5 +1,6 @@
 package app.model;
 
+import app.model.util.Generator;
 import app.model.util.PercentParcel;
 import app.model.util.PixelParcel;
 import app.model.variable.*;
@@ -30,7 +31,7 @@ public class Rectangle extends Composite {
     private final NumberVar bottom = NumberVar.emit(-.2);
     private final NumberVar face = NumberVar.emit(0.5);
     private final Var<Outfit> outfit = SimpleVar.emit();
-    private final Subject weakParams = Suite.wonky();
+    private final Subject $weakParams = Suite.set();
 
     private Monitor vertexMonitor;
 
@@ -51,59 +52,57 @@ public class Rectangle extends Composite {
 
         exp = null;
 
-        if( in(hParams, Side.LEFT, Side.RIGHT)) exp = "a, b";
-        else if( in(hParams, Side.LEFT, Pos.HORIZONTAL_CENTER)) exp = "a, 2 * b - a";
-        else if( in(hParams, Side.LEFT, Dim.WIDTH)) exp = "a, a + b";
-        else if( in(hParams, Side.RIGHT, Pos.HORIZONTAL_CENTER)) exp = "a; 2 * b - a";
-        else if( in(hParams, Side.RIGHT, Dim.WIDTH)) exp = "a - b, a";
-        else if( in(hParams, Dim.WIDTH, Pos.HORIZONTAL_CENTER)) exp = "b - a / 2, b + a / 2";
+        if( hParams.get(Side.LEFT, Side.RIGHT).size() == 2 ) exp = "a, b";
+        else if( hParams.get(Side.LEFT, Pos.HORIZONTAL_CENTER).size() == 2 ) exp = "a, 2 * b - a";
+        else if( hParams.get(Side.LEFT, Dim.WIDTH).size() == 2 ) exp = "a, a + b";
+        else if( hParams.get(Side.RIGHT, Pos.HORIZONTAL_CENTER).size() == 2 ) exp = "a; 2 * b - a";
+        else if( hParams.get(Side.RIGHT, Dim.WIDTH).size() == 2 ) exp = "a - b, a";
+        else if( hParams.get(Dim.WIDTH, Pos.HORIZONTAL_CENTER).size() == 2 ) exp = "b - a / 2, b + a / 2";
 
-        if(exp != null) fun( abcS(hParams.values()), exp, abc(left, right)).press(true);
+        if(exp != null) fun( hParams.eachIn().convert(Generator.alphas()), exp, abc(left, right)).press(true);
 
         var vParams = sketch.get(Side.BOTTOM, Side.TOP, Pos.VERTICAL_CENTER, Dim.HEIGHT);
         if(vParams.size() > 2) throw new RuntimeException("Too many vertical constraints given. Expected <= 2, given: " + vParams);
 
         exp = null;
 
-        if( in(vParams, Side.BOTTOM, Side.TOP)) exp = "a, b";
-        else if( in(vParams, Side.BOTTOM, Pos.VERTICAL_CENTER)) exp = "a, 2 * b - a";
-        else if( in(vParams, Side.BOTTOM, Dim.HEIGHT)) exp = "a, a + b";
-        else if( in(vParams, Side.TOP, Pos.VERTICAL_CENTER)) exp = "a; 2 * b - a";
-        else if( in(vParams, Side.TOP, Dim.HEIGHT)) exp = "a - b, a";
-        else if( in(vParams, Dim.HEIGHT, Pos.VERTICAL_CENTER)) exp = "b - a / 2, b + a / 2";
+        if( vParams.get(Side.BOTTOM, Side.TOP).size() == 2) exp = "a, b";
+        else if( vParams.get(Side.BOTTOM, Pos.VERTICAL_CENTER).size() == 2) exp = "a, 2 * b - a";
+        else if( vParams.get(Side.BOTTOM, Dim.HEIGHT).size() == 2) exp = "a, a + b";
+        else if( vParams.get(Side.TOP, Pos.VERTICAL_CENTER).size() == 2) exp = "a; 2 * b - a";
+        else if( vParams.get(Side.TOP, Dim.HEIGHT).size() == 2) exp = "a - b, a";
+        else if( vParams.get(Dim.HEIGHT, Pos.VERTICAL_CENTER).size() == 2) exp = "b - a / 2, b + a / 2";
 
-        if(exp != null) fun( abcS(vParams.values()), exp, abc(bottom, top)).press(true);
+        if(exp != null) fun( vParams.eachIn().convert(Generator.alphas()), exp, abc(bottom, top)).press(true);
 
 
-        var outfitParam = sketch.get(OUTFIT);
+        var outfitParam = sketch.in(OUTFIT).get();
 
         Object outfit = null;
 
-        if(outfitParam.assigned(Outfit.class) || outfitParam.assigned(ValueProducer.class)) outfit = outfitParam.direct();
-        else if(outfitParam.assigned(Subject.class)) outfit = Outfit.form(outfitParam.asExpected());
+        if(outfitParam.is(Outfit.class) || outfitParam.is(ValueProducer.class)) outfit = outfitParam.direct();
+        else if(outfitParam.is(Subject.class)) outfit = Outfit.form(outfitParam.asExpected());
 
         if(outfit != null) Fun.assign(outfit, this.outfit);
 
 
-        var faceParam = sketch.get("face");
+        var faceParam = sketch.in("face").get();
 
         Object face = null;
 
-        if(faceParam.assigned(Number.class) || faceParam.assigned(ValueProducer.class)) face = faceParam.direct();
+        if(faceParam.is(Number.class) || faceParam.is(ValueProducer.class)) face = faceParam.direct();
 
         if(face != null) Fun.assign(face, this.face);
 
-        for(Subject s : sketch.at(COMPONENTS)) {
-            place(s.asGiven(Subject.class));
-        }
+        sketch.in(COMPONENTS).eachIn().forEach(this::place);
     }
 
     public Rectangle() {
 
-        instant(num(outfit), s -> {
-            Outfit o = s.asExpected();
-            vertexMonitor = Monitor.compose(true, Suite.set(top).set(left).set(bottom).set(right).
-                    set(o.getVertexMonitor()));
+        instant(num(outfit), $ -> {
+            Outfit o = $.at(0).asExpected();
+            vertexMonitor = Monitor.compose(true, Suite.put(top).put(left).put(bottom).put(right).
+                    put(o.getVertexMonitor()));
             o.updateIndices(new int[]{0, 2, 1, 0, 3, 2});
         });
 
@@ -136,7 +135,7 @@ public class Rectangle extends Composite {
             outfit.get().updateVertex(getVertex(v, 0, 7));
         }
         outfit.get().print();
-        components.values(Component.class).forEach(Component::print);
+        $components.eachIn().eachAs(Component.class).forEach(Component::print);
     }
 
     public float[] getVertex(float[] collector, int offset, int stride) {
@@ -161,38 +160,52 @@ public class Rectangle extends Composite {
     }
 
     public Var<Boolean> mouseIn() {
-        return weakParams.getDone($MOUSE_IN, () -> SimpleVar.compound(num(window.mouse.getPosition(), window.width,
-                 window.height, left, right, top, bottom), s -> {
-            Vector2d mPos = s.asExpected();
-            double w = s.get(1).asDouble(), h = s.get(2).asDouble();
-            double x = 2. * mPos.x / w - 1., y = 1. - 2. * mPos.y / h;
-            double l = s.get(3).asDouble(), r = s.get(4).asDouble(), t = s.get(5).asDouble(), b = s.get(6).asDouble();
-            return x > l && x < r && y < t && y > b;
-        })).asExpected();
+        var $mouseIn = $weakParams.in($MOUSE_IN).set();
+        if($mouseIn.absent()) {
+            $mouseIn.set(SimpleVar.compound(num(window.mouse.getPosition(), window.width,
+                    window.height, left, right, top, bottom), $ -> {
+                Vector2d mPos = $.in(0).asExpected();
+                double w = $.in(1).get().asDouble(), h = $.in(2).get().asDouble();
+                double x = 2. * mPos.x / w - 1., y = 1. - 2. * mPos.y / h;
+                double l = $.in(3).get().asDouble(), r = $.in(4).get().asDouble(),
+                        t = $.in(5).get().asDouble(), b = $.in(6).get().asDouble();
+                return x > l && x < r && y < t && y > b;
+            }));
+        }
+        return $mouseIn.asExpected();
     }
 
     public NumberVar width() {
-        return weakParams.getDone(Dim.WIDTH, () -> NumberVar.expressed(Suite.add(right).add(left), Exp::sub)).asExpected();
+        var $width = $weakParams.in(Dim.WIDTH).set();
+        if($width.absent()) {
+            $width.set(NumberVar.expressed(Suite.put(right).put(left), Exp::sub));
+        }
+        return $width.asExpected();
     }
 
     public NumberVar height() {
-        return weakParams.getDone(Dim.HEIGHT, () -> NumberVar.expressed(Suite.add(top).add(bottom), Exp::sub)).asExpected();
+        var $height = $weakParams.in(Dim.WIDTH).set();
+        if($height.absent()) {
+            $height.set(NumberVar.expressed(Suite.put(top).put(bottom), Exp::sub));
+        }
+        return $height.asExpected();
     }
 
     Subject textTransform(Subject sketch) {
         Subject r = Suite.set();
-        for(var s : sketch) {
-            var k = s.key().direct();
+        for(var $ : sketch) {
+            var $v = $.at();
+            var k = $.direct();
             if(k == Side.LEFT || k == Side.RIGHT || k == Pos.HORIZONTAL_CENTER) {
-                if(s.assigned(PixelParcel.class)) {
-                    PixelParcel pixelParcel = s.asExpected();
+                if($v.is(PixelParcel.class)) {
+                    PixelParcel pixelParcel = $v.asExpected();
                     var wb = pixelParcel.waybill;
                     if(wb == null || wb == Side.LEFT) r.set(k, NumberVar.expressed("a * (b + 1) / 2 + c",
                             window.getWidth(), left(), pixelParcel.ware));
                     else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed("a * (b + 1) / 2 - c",
                             window.getWidth(), right(), pixelParcel.ware));
-                } else if(s.assigned(PercentParcel.class)) {
-                    PercentParcel percentParcel = s.asExpected();
+                } else if($v.is(PercentParcel.class)) {
+                    PercentParcel percentParcel = $v.asExpected();
                     var wb = percentParcel.waybill;
                     if(wb == null || wb == Side.LEFT) r.set(k, NumberVar.expressed("((r - l) * p / 100 + l) * w",
                             Suite.set("r", right()).set("l", left()).set("p", percentParcel.ware).set("w", window.getWidth())));
@@ -200,35 +213,37 @@ public class Rectangle extends Composite {
                             Suite.set("r", right()).set("l", left()).set("p", percentParcel.ware).set("w", window.getWidth())));
                 }
             } else if(k == Side.BOTTOM || k == Side.TOP || k == Pos.VERTICAL_CENTER) {
-                if(s.assigned(PixelParcel.class)) {
-                    PixelParcel pixelParcel = s.asExpected();
+                if($v.is(PixelParcel.class)) {
+                    PixelParcel pixelParcel = $v.asExpected();
                     var wb = pixelParcel.waybill;
                     if(wb == null || wb == Side.TOP) r.set(k, NumberVar.expressed("a * (b + 1) / 2 - c",
                             window.getHeight(), top(), pixelParcel.ware));
                     else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed("a * (b + 1) / 2 + c",
                             window.getHeight(), top(), pixelParcel.ware));
-                } else if(s.assigned(PercentParcel.class)) {
-                    PercentParcel percentParcel = s.asExpected();
+                } else if($v.is(PercentParcel.class)) {
+                    PercentParcel percentParcel = $v.asExpected();
                     var wb = percentParcel.waybill;
                     if(wb == null || wb == Side.TOP) r.set(k, NumberVar.expressed("((a - b) * c / 100 + b) * d",
                             bottom(), top(), percentParcel.ware, window.getHeight()));
                     else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed("((a - b) * c / 100 + b) * d",
                             top(), bottom(), percentParcel.ware, window.getHeight()));
                 }
-            } else r.inset(s);
+            } else r.alter($);
         }
-        r.put("pw", window.getWidth()).put("ph", window.getHeight());
+        if(r.absent("pw")) r.set("pw", window.getWidth());
+        if(r.absent("ph"))r.set("ph", window.getHeight());
 
         return r;
     }
 
     Subject rectTransform(Subject sketch) {
         Subject r = Suite.set();
-        for(var s : sketch) {
-            var k = s.key().direct();
+        for(var $ : sketch) {
+            var $v = $.at();
+            var k = $.direct();
             if(k == Pos.HORIZONTAL_CENTER || k == Side.LEFT || k == Side.RIGHT) {
-                if(s.assigned(PixelParcel.class)) {
-                    PixelParcel pixelParcel = s.asExpected();
+                if($v.is(PixelParcel.class)) {
+                    PixelParcel pixelParcel = $v.asExpected();
                     var wb = pixelParcel.waybill;
                     if(wb == null)wb = k;
                     if(wb == Side.LEFT) r.set(k, NumberVar.expressed("a + b / c * 2",
@@ -237,8 +252,8 @@ public class Rectangle extends Composite {
                             right(), pixelParcel.ware, window.getWidth()));
                     else if(wb == Pos.HORIZONTAL_CENTER) r.set(k, NumberVar.expressed("(b - a) / 2 + a + c / d * 2",
                             left(), right(), pixelParcel.ware, window.getWidth()));
-                } else if(s.assigned(PercentParcel.class)) {
-                    PercentParcel percentParcel = s.asExpected();
+                } else if($v.is(PercentParcel.class)) {
+                    PercentParcel percentParcel = $v.asExpected();
                     var wb = percentParcel.waybill;
                     if(wb == null)wb = k;
                     if(wb == Side.LEFT) r.set(k, NumberVar.expressed("(a - b) * c / 100 + b",
@@ -249,8 +264,8 @@ public class Rectangle extends Composite {
                             left(), right(), percentParcel.ware));
                 }
             } else if(k == Pos.VERTICAL_CENTER || k == Side.TOP || k == Side.BOTTOM) {
-                if(s.assigned(PixelParcel.class)) {
-                    PixelParcel pixelParcel = s.asExpected();
+                if($v.is(PixelParcel.class)) {
+                    PixelParcel pixelParcel = $v.asExpected();
                     var wb = pixelParcel.waybill;
                     if(wb == null)wb = k;
                     if(wb == Side.TOP) r.set(k, NumberVar.expressed("a - b / c * 2",
@@ -259,8 +274,8 @@ public class Rectangle extends Composite {
                             bottom(), pixelParcel.ware, window.getHeight()));
                     else if(wb == Pos.VERTICAL_CENTER) r.set(k, NumberVar.expressed("(b - a) / 2 + a + c / d * 2",
                             bottom(), top(), pixelParcel.ware, window.getHeight()));
-                } else if(s.assigned(PercentParcel.class)) {
-                    PercentParcel percentParcel = s.asExpected();
+                } else if($v.is(PercentParcel.class)) {
+                    PercentParcel percentParcel = $v.asExpected();
                     var wb = percentParcel.waybill;
                     if(wb == null)wb = k;
                     if(wb == Side.TOP) r.set(k, NumberVar.expressed("(a - b) * c / 100 + b",
@@ -271,32 +286,33 @@ public class Rectangle extends Composite {
                             bottom(), top(), percentParcel.ware));
                 }
             } else if(k == Dim.WIDTH) {
-                if(s.assigned(PixelParcel.class)) {
-                    PixelParcel pixelParcel = s.asExpected();
+                if($v.is(PixelParcel.class)) {
+                    PixelParcel pixelParcel = $v.asExpected();
                     var wb = pixelParcel.waybill;
                     if(wb == null) r.set(Dim.WIDTH, NumberVar.expressed("a / b * 2",
                             pixelParcel.ware, window.getWidth()));
-                } else if(s.assigned(PercentParcel.class)) {
-                    PercentParcel percentParcel = s.asExpected();
+                } else if($v.is(PercentParcel.class)) {
+                    PercentParcel percentParcel = $v.asExpected();
                     var wb = percentParcel.waybill;
                     if(wb == null) r.set(Dim.WIDTH, NumberVar.expressed("(a - b) * c / 100",
                             right(), left(), percentParcel.ware));
                 }
             } else if(k == Dim.HEIGHT) {
-                if (s.assigned(PixelParcel.class)) {
-                    PixelParcel pixelParcel = s.asExpected();
+                if ($v.is(PixelParcel.class)) {
+                    PixelParcel pixelParcel = $v.asExpected();
                     var wb = pixelParcel.waybill;
                     if (wb == null) r.set(Dim.HEIGHT, NumberVar.expressed("a / b * 2",
                             pixelParcel.ware, window.getHeight()));
-                } else if (s.assigned(PercentParcel.class)) {
-                    PercentParcel percentParcel = s.asExpected();
+                } else if ($v.is(PercentParcel.class)) {
+                    PercentParcel percentParcel = $v.asExpected();
                     var wb = percentParcel.waybill;
                     if (wb == null) r.set(Dim.HEIGHT, NumberVar.expressed("(a - b) * c / 100",
                             top(), bottom(), percentParcel.ware));
                 }
-            } else r.inset(s);
+            } else r.alter($);
         }
-        r.put(Composite.class, this).put(Window.class, window);
+        r.sate(Composite.class, Suite.set(this));
+        r.sate(Window.class, Suite.set(window));
 
         return r;
     }
@@ -465,7 +481,7 @@ public class Rectangle extends Composite {
         }
 
         public T place(Subject sketch) {
-            into(COMPONENTS).add(sketch);
+            in(COMPONENTS).input(sketch);
             return self();
         }
     }

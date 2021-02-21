@@ -12,11 +12,9 @@ public interface Outfit {
 
     static Outfit form(Subject sub) {
         var colors = sub.get(Color.RED, Color.GREEN, Color.BLUE, Color.ALPHA);
-//        if(colors.settled()) {
-            ColorOutfit colorOutfit = new ColorOutfit();
-            colorOutfit.color = Color.form(colors);
-            return colorOutfit;
-//        }
+        ColorOutfit colorOutfit = new ColorOutfit();
+        colorOutfit.color = Color.form(colors);
+        return colorOutfit;
     }
 
     static Sketch<?> sketch(Subject s) {

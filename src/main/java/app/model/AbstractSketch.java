@@ -1,6 +1,5 @@
 package app.model;
 
-import suite.suite.Slot;
 import suite.suite.SolidSubject;
 import suite.suite.Subject;
 
@@ -24,26 +23,26 @@ public abstract class AbstractSketch<T extends Subject> extends SolidSubject {
     }
 
     @Override
-    public T set(Object key, Object value) {
-        super.set(key, value);
+    public T exactSet(Object aim, Object element) {
+        super.exactSet(aim, element);
         return self();
     }
 
     @Override
-    public T put(Object element) {
-        super.put(element);
+    public T inset(Object element, Subject $set) {
+        super.inset(element, $set);
         return self();
     }
 
     @Override
-    public T put(Object key, Object value) {
-        super.put(key, value);
+    public T exactInset(Object aim, Object element, Subject $set) {
+        super.exactInset(aim, element, $set);
         return self();
     }
-
+    
     @Override
-    public T add(Object element) {
-        super.add(element);
+    public T shift(Object out, Object in) {
+        super.shift(out, in);
         return self();
     }
 
@@ -54,62 +53,86 @@ public abstract class AbstractSketch<T extends Subject> extends SolidSubject {
     }
 
     @Override
-    public T unset(Object key) {
-        super.unset(key);
+    public T unset(Object element) {
+        super.unset(element);
         return self();
     }
 
     @Override
-    public T unset(Object key, Object value) {
-        super.unset(key, value);
+    public T alter(Iterable<? extends Subject> iterable) {
+        super.alter(iterable);
         return self();
     }
 
     @Override
-    public T unsetAt(Slot slot) {
-        super.unsetAt(slot);
+    public T exactAlter(Object sequent, Iterable<? extends Subject> iterable) {
+        super.exactAlter(sequent, iterable);
         return self();
     }
 
     @Override
-    public T inset(Iterable<Subject> iterable) {
-        super.inset(iterable);
+    public T set() {
+        super.set();
         return self();
     }
 
     @Override
-    public T input(Iterable<Subject> iterable) {
-        super.input(iterable);
+    public T set(Object key, Object value, Object... rest) {
+        super.set(key, value, rest);
         return self();
     }
 
     @Override
-    public T setAt(Slot slot, Object element) {
-        super.setAt(slot, element);
+    public T exactSet(Object aim, Object key, Object value, Object... rest) {
+        super.exactSet(aim, key, value, rest);
         return self();
     }
 
     @Override
-    public T setAt(Slot slot, Object key, Object value) {
-        super.setAt(slot, key, value);
+    public T put(Object element) {
+        super.put(element);
         return self();
     }
 
     @Override
-    public T putAt(Slot slot, Object element) {
-        super.putAt(slot, element);
+    public T exactPut(Object aim, Object element) {
+        super.exactPut(aim, element);
         return self();
     }
 
     @Override
-    public T putAt(Slot slot, Object key, Object value) {
-        super.putAt(slot, key, value);
+    public T put(Object value, Object... rest) {
+        super.put(value, rest);
         return self();
     }
 
     @Override
-    public T addAt(Slot slot, Object element) {
-        super.addAt(slot, element);
+    public T exactPut(Object aim, Object value, Object... rest) {
+        super.exactPut(aim, value, rest);
+        return self();
+    }
+
+    @Override
+    public T input(Subject $set) {
+        super.input($set);
+        return self();
+    }
+
+    @Override
+    public T exactInput(Object target, Subject $set) {
+        super.exactInput(target, $set);
+        return self();
+    }
+
+    @Override
+    public T reset(Object element) {
+        super.reset(element);
+        return self();
+    }
+
+    @Override
+    public T merge(Subject $tree) {
+        super.merge($tree);
         return self();
     }
 
@@ -126,18 +149,8 @@ public abstract class AbstractSketch<T extends Subject> extends SolidSubject {
     }
 
     @Override
-    public T addAll(Iterable<?> iterable) {
-        super.addAll(iterable);
-        return self();
-    }
-
-    @Override
-    public T set() {
-        return self();
-    }
-
-    @Override
-    public T put() {
+    public T unsetAll(Iterable<?> iterable) {
+        super.unsetAll(iterable);
         return self();
     }
 }

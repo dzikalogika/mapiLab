@@ -1,7 +1,7 @@
 package app.model.variable;
 
 import suite.suite.Suite;
-import suite.suite.util.Fluid;
+import suite.suite.util.Series;
 
 public interface ValueProducer<T> {
 
@@ -17,13 +17,14 @@ public interface ValueProducer<T> {
         return this;
     }
 
-    static Fluid prepareComponents(Fluid components, ValueProducer<?> self) {
-        return components.map(s -> {
-            if(s.direct() == OWN_VALUE)
-                return Suite.set(s.key().direct(), self.weak());
-            else if(s.direct() == SELF)
-                return Suite.set(s.key().direct(), new Constant<>(self));
-            else return s;
+    static Series prepareComponents(Series $components, ValueProducer<?> self) {
+        return $components.convert($ -> {
+            var $v = $.at();
+            if($v.direct() == OWN_VALUE)
+                return Suite.set($.direct(), self.weak());
+            else if($v.direct() == SELF)
+                return Suite.set($.direct(), new Constant<>(self));
+            else return $;
         });
     }
 }

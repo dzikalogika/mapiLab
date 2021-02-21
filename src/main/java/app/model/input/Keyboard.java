@@ -12,7 +12,7 @@ public class Keyboard {
         Var<Integer> state = SimpleVar.emit(GLFW.GLFW_RELEASE);
         Var<Boolean> pressed = SimpleVar.expressed(false, Suite.set(state).set(Var.OWN_VALUE), s -> {
             int state = s.asInt();
-            boolean pressedSoFar = s.recent().asExpected();
+            boolean pressedSoFar = s.last().asExpected();
             if(pressedSoFar) {
                 return state == GLFW.GLFW_RELEASE ? Suite.set(false) : Suite.set();
             } else {
@@ -71,7 +71,7 @@ public class Keyboard {
         }
     }
 
-    private final Subject keys = Suite.thready();
+    private final Subject $keys = Suite.thready();
     private final Var<KeyEvent> keyEvent = SimpleVar.emit();
     private final Var<CharEvent> charEvent = SimpleVar.emit();
 
@@ -98,10 +98,14 @@ public class Keyboard {
 
     public Key getKey(int keyCode) {
         int scanCode = GLFW.glfwGetKeyScancode(keyCode);
-        return keys.getDone(scanCode, Key::new).asGiven(Key.class);
+        return getKeyByScanCode(scanCode);
     }
 
     public Key getKeyByScanCode(int scanCode) {
-        return keys.getDone(scanCode, Key::new).asGiven(Key.class);
+        var $ = $keys.in(scanCode).set();
+        if($.absent()) {
+            $.set(new Key());
+        }
+        return $.asExpected();
     }
 }

@@ -2,9 +2,11 @@ package app.model;
 
 import app.model.util.PixelParcel;
 import app.model.variable.*;
+import brackettree.reader.BracketTree;
 import org.joml.Matrix4f;
 import suite.suite.Subject;
 import suite.suite.Suite;
+import suite.suite.util.Sequence;
 
 import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
 import static org.lwjgl.opengl.GL13.glActiveTexture;
@@ -15,7 +17,7 @@ public class Text extends Component {
     public static final Object SHADER = new Object();
     public static final Object GRAPHIC = new Object();
 
-    private final Subject weakParams = Suite.wonky();
+    private final Subject $weakParams = Suite.set();
     final Var<String> content = SimpleVar.emit("");
     final NumberVar left = NumberVar.emit(0);
     final NumberVar bottom = NumberVar.emit(300);
@@ -33,46 +35,51 @@ public class Text extends Component {
     final Monitor projectionMonitor;
     final Monitor colorMonitor;
 
-    public void init(Subject sub) {
-        Subject s;
-        content.assign(sub.get(CONTENT));
-        left.assign(sub.get(Side.LEFT));
-        if((s = sub.get(Pos.HORIZONTAL_CENTER)).settled()) {
-            left.compose(num(graphicModel, size, content, s.direct()), su -> {
-                TextGraphic textGraphic = su.get(0).asExpected();
-                float size = su.get(1).asFloat();
-                String txt = su.get(2).asString();
-                float x = su.get(3).asFloat();
+    public void init(Subject $sub) {
+        content.assign($sub.get(CONTENT));
+        left.assign($sub.get(Side.LEFT));
+        var $s = $sub.in(Pos.HORIZONTAL_CENTER).get();
+        if($s.present()) {
+            left.compose(num(graphicModel, size, content, $s.direct()), $ -> {
+                TextGraphic textGraphic = $.in(0).asExpected();
+                float size = $.in(1).get().asFloat();
+                String txt = $.in(2).get().asString();
+                float x = $.in(3).get().asFloat();
                 return x - textGraphic.getStringWidth(txt, size) / 2;
             });
         }
-        if((s = sub.get(Pos.VERTICAL_CENTER)).settled()) {
-            bottom.compose(num(size, s.direct()), su -> {
-                float size = su.get(0).asFloat();
-                float y = su.get(1).asFloat();
+        $s = $sub.in(Pos.VERTICAL_CENTER).get();
+        if($s.present()) {
+            bottom.compose(num(size, $s.direct()), $ -> {
+                float size = $.in(0).get().asFloat();
+                float y = $.in(1).get().asFloat();
                 return y + size / 3;
             });
         }
-        bottom.assign(sub.get(Side.BOTTOM));
-        size.assign(sub.get(Dim.HEIGHT));
-        redColor.assign(sub.get(Color.RED));
-        greenColor.assign(sub.get(Color.GREEN));
-        blueColor.assign(sub.get(Color.BLUE));
-        alphaColor.assign(sub.get(Color.ALPHA));
-        if((s = sub.get("pw")).settled()) projectionWidth.assign(s);
+        bottom.assign($sub.get(Side.BOTTOM));
+        size.assign($sub.get(Dim.HEIGHT));
+        redColor.assign($sub.get(Color.RED));
+        greenColor.assign($sub.get(Color.GREEN));
+        blueColor.assign($sub.get(Color.BLUE));
+        alphaColor.assign($sub.get(Color.ALPHA));
+        if(($s = $sub.get("pw")).present()) projectionWidth.assign($s);
         else throw new RuntimeException("Projection width (pw) param is obligatory");
-        if((s = sub.get("ph")).settled()) projectionHeight.assign(s);
+        if(($s = $sub.get("ph")).present()) projectionHeight.assign($s);
         else throw new RuntimeException("Projection height (ph) param is obligatory");
 
-        if((s = sub.get(SHADER)).settled()) shader.assign(s);
+        BracketTree.read(Shader.class.getClassLoader().
+                getResourceAsStream("jorg/textShader.jorg")).as(Shader.class);
+
+        if(($s = $sub.get(SHADER)).present()) shader.assign($s);
         else shader.set(TextGraphic.defaultShader);
-        if((s = sub.get(GRAPHIC)).settled()) graphicModel.assign(s);
+        if(($s = $sub.get(GRAPHIC)).present()) graphicModel.assign($s);
         else graphicModel.set(TextGraphic.getForSize(size.getDouble()));
     }
 
     public Text() {
-        projectionMonitor = Monitor.compose(true, Suite.set(shader).set(projectionWidth).set(projectionHeight));
-        colorMonitor = Monitor.compose(true, Suite.set(shader).set(redColor).set(greenColor).set(blueColor).set(alphaColor));
+        projectionMonitor = Monitor.compose(true, Suite.put(shader).put(projectionWidth).put(projectionHeight));
+        colorMonitor = Monitor.compose(true, Suite.set().putAll(Sequence.of(
+                shader, redColor, greenColor, blueColor, alphaColor)));
     }
 
     @Override
@@ -82,8 +89,8 @@ public class Text extends Component {
         sh.use();
 
         if(projectionMonitor.release()) {
-            sh.set("projection", new Matrix4f().ortho2D(0f, projectionWidth.getFloat(), 0f, projectionHeight.getFloat()));
-            TextGraphic textGraphic = graphicModel.get();
+//            sh.set("projection", new Matrix4f().ortho2D(0f, projectionWidth.getFloat(), 0f, projectionHeight.getFloat()));
+            sh.set("projection", new Matrix4f().ortho2D(0f, 800f, 0f, 600f));
         }
         glActiveTexture(GL_TEXTURE0);
         if(colorMonitor.release()) {
@@ -91,8 +98,10 @@ public class Text extends Component {
         }
 
         TextGraphic textGraphic = graphicModel.get();
-        textGraphic.render(content.get(), left.getFloat(), bottom.getFloat(),
-                size.getFloat(), projectionHeight.getFloat());
+//        textGraphic.render(content.get(), left.getFloat(), bottom.getFloat(),
+//                size.getFloat(), projectionHeight.getFloat());
+        textGraphic.render(content.get(), 400, 400,
+                24, 800);
     }
 
     public Var<String> content() {
@@ -132,12 +141,16 @@ public class Text extends Component {
     }
 
     public NumberVar width() {
-        return weakParams.getDone(Dim.WIDTH, () -> NumberVar.compound(num(content, graphicModel, size), su -> {
-            String c = su.get(0).asExpected();
-            TextGraphic g = su.get(1).asExpected();
-            float size = su.get(2).asFloat();
-            return g.getStringWidth(c, size);
-        })).asExpected();
+        var $width = $weakParams.in(Dim.WIDTH).set();
+        if($width.absent()) {
+            $width.set(NumberVar.compound(num(content, graphicModel, size), $ -> {
+                String c = $.in(0).asExpected();
+                TextGraphic g = $.in(1).asExpected();
+                float size = $.in(2).get().asFloat();
+                return g.getStringWidth(c, size);
+            }));
+        }
+        return $width.asExpected();
     }
 
     public static Sketch<?> sketch(Subject s) {

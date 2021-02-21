@@ -10,33 +10,33 @@ public abstract class Composite extends Component {
     public static Object COMPONENTS = new Object();
     public static Object INSTANCE = new Object();
 
-    final Subject components = Suite.set();
+    final Subject $components = Suite.set();
 
     @Override
     public void play() {
-        components.values().filter(Playground.class).forEach(Playground::play);
+        $components.eachAs(Playground.class).forEach(Playground::play);
         super.play();
     }
 
     public void place(Component component) {
-        components.set(component);
+        $components.set(component);
     }
 
     public void place(Subject sketch) {
 
-        var instance = sketch.get(INSTANCE);
-        if(instance.settled()) {
-            if(instance.assigned(Rectangle.class)) {
-                Rectangle rect = instance.asExpected();
+        var $instance = sketch.in(INSTANCE).get();
+        if($instance.present()) {
+            if($instance.is(Rectangle.class)) {
+                Rectangle rect = $instance.asExpected();
                 rect.init(rectTransform(sketch));
                 place(rect);
-            } else if(instance.assigned(Text.class)) {
-                Text text = instance.asExpected();
+            } else if($instance.is(Text.class)) {
+                Text text = $instance.asExpected();
                 text.init(textTransform(sketch));
                 place(text);
             }
         } else {
-            Class<?> modelClass = sketch.get(AbstractSketch.MODEL).asExpected();
+            Class<?> modelClass = sketch.in(AbstractSketch.MODEL).asExpected();
             if(modelClass.equals(Rectangle.class)) {
                 Rectangle rect = new Rectangle();
                 rect.init(rectTransform(sketch));

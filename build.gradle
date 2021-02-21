@@ -58,7 +58,7 @@ dependencies {
         }
     }
 
-    implementation("lpo:jorg") {
+    implementation("lpo:brackettree") {
         version {
             branch = 'master'
         }

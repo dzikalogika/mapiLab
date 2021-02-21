@@ -31,9 +31,9 @@ public class Texture extends GLObject {
             set("rgba", GL_RGBA);
 
     public static Texture form(Subject sub) {
-        String file = sub.get("file").asExpected();
+        String file = sub.in("file").asExpected();
         int format = Suite.from(sub).get("format").map(String.class, String::toLowerCase).map(textureFormats).orGiven(GL_RGB);
-        boolean flip = sub.get("flip").settled();
+        boolean flip = !(sub.absent("flip") || !sub.in("flip").get().asBoolean(false));
         int textureWrapS = Suite.from(sub).get("textureWrapS").or("textureWrap").map(textureWrappers).orGiven(GL_CLAMP_TO_EDGE);
         int textureWrapT = Suite.from(sub).get("textureWrapT").or("textureWrap").map(textureWrappers).orGiven(GL_CLAMP_TO_EDGE);
         int textureMinFilter = Suite.from(sub).get("textureMinFilter").or("textureFilter").map(textureFilters).orGiven(GL_LINEAR);

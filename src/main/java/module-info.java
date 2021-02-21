@@ -3,6 +3,6 @@ module lwjgl.main {
     requires org.lwjgl.glfw;
     requires org.lwjgl.opengl;
     requires org.lwjgl.stb;
-    requires jorg.main;
+    requires brackettree;
     requires suite.main;
 }

@@ -1,19 +1,19 @@
 package app.model;
 
-import jorg.jorg.Reformable;
+import brackettree.Discovered;
 import suite.suite.Subject;
 import org.joml.Matrix4f;
 import suite.suite.Suite;
 
 import static org.lwjgl.opengl.GL45.*;
 
-public class Shader extends GLObject implements Reformable {
+public class Shader extends GLObject implements Discovered {
 
-    public static Shader form(Subject sub) {
-        String vertex = sub.get("vertex").asString();
-        String fragment = sub.get("fragment").asString();
+    public static Subject compose(Subject $) {
+        String vertex = $.in("vertex").get().asString();
+        String fragment = $.in("fragment").get().asString();
 
-        return new Shader(vertex, fragment);
+        return Suite.set(new Shader(vertex, fragment));
     }
 
     public Shader(String vertex, String fragment) {

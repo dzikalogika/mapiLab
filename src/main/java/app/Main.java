@@ -46,69 +46,71 @@ public class Main extends Window {
 
         Rectangle rect = new Rectangle();
 
-        place(rect(rect).
-                sides(100, 10, 10, 50).
-                color(0.2, 0.5, 0.5).
-                place(rect().
-                        color(r, g, b).
-                        set("face", 0.4).
-                        place(rect().
-                                sides(5, 5, 5, 5).
-                                color(0.1, 0.1, 0.1).
-                                set("face", 0.3)
-                        )
-                )
-        );
+//        place(rect(rect).
+//                sides(100, 10, 10, 50).
+//                color(0.2, 0.5, 0.5).
+//                place(rect().
+//                        color(r, g, b).
+//                        set("face", 0.4).
+//                        place(rect().
+//                                sides(5, 5, 5, 5).
+//                                color(0.1, 0.1, 0.1).
+//                                set("face", 0.3)
+//                        )
+//                )
+//        );
 
         Text text = new Text();
         place(text(text).
                 horizontalCenter(xs, Unit.PERCENT).
                 verticalCenter(ys, Unit.PERCENT).
                 height(textH).
-                content("W").
+                content("text").
                 redColor(200).
                 blueColor(200));
 
-        instant(num(mouse.getPosition()), text.content(), Subject::asString);
+//        instant(num(mouse.getPosition()), text.content(), Subject::asString);
+//
+//        instant(Suite.put(keyboard.getKey(GLFW_KEY_Z).getPressed().select((b0, b1) -> b1)).put(textH.weak()), textH,
+//                $ -> $.last().at().asInt() + 10);
+//
+//        instant(Suite.put(keyboard.getCharEvent()).put(text.content().weak()), text.content(), $ -> {
+//            Keyboard.CharEvent e = $.in().asExpected();
+//            String content = $.last().at().asString();
+//            return new StringBuilder(content).appendCodePoint(e.getCodepoint()).toString();
+//        });
+//
+//        Fun t1 = instant(Suite.put(text.content().weak()).put(keyboard.getKey(GLFW_KEY_BACKSPACE).
+//                getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), text.content(), $ -> {
+//            String content = $.at().asString();
+//            return content.length() > 0 ? content.substring(0, content.length() - 1) : "";
+//        });
+//
+//        instant(Suite.put(t1).set(Fun.SELF, Fun.SELF).put(keyboard.getKey(GLFW_KEY_ENTER).getState()), $ -> {
+//            $.in().as(Fun.class).detach();
+//            $.in(Fun.SELF).as(Fun.class).detach();
+//        });
+//
+        instant(Suite.put(keyboard.getKey(GLFW_KEY_SPACE).getState().select((s1, s2) -> s2 == GLFW_PRESS)), Suite.
+                set("r", r).set("g", g).set("b", b), $ -> Suite
+                .set("r", (float)Math.random())
+                .set("g", (float)Math.random())
+                .set("b", (float)Math.random()));
 
-        instant(Suite.set(keyboard.getKey(GLFW_KEY_Z).getPressed().select((b0, b1) -> b1)).set(textH.weak()), textH, s -> s.recent().asInt() + 10);
-
-        instant(Suite.set(keyboard.getCharEvent()).set(text.content().weak()), text.content(), s -> {
-            Keyboard.CharEvent e = s.asExpected();
-            String content = s.recent().asString();
-            return new StringBuilder(content).appendCodePoint(e.getCodepoint()).toString();
-        });
-
-        Fun t1 = instant(Suite.set(text.content().weak()).set(keyboard.getKey(GLFW_KEY_BACKSPACE).
-                getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), text.content(), s -> {
-            String content = s.asString();
-            return content.length() > 0 ? content.substring(0, content.length() - 1) : "";
-        });
-
-        instant(Suite.set(t1).set(Fun.SELF).set(keyboard.getKey(GLFW_KEY_ENTER).getState()), s -> {
-            s.asGiven(Fun.class).detach();
-            s.get(Fun.SELF).asGiven(Fun.class).detach();
-        });
-
-        instant(Suite.set(keyboard.getKey(GLFW_KEY_SPACE).getState().select((s1, s2) -> s2 == GLFW_PRESS)), Suite.
-                set("r", r).set("g", g).set("b", b), s -> {
-            return Suite.set("r", (float)Math.random()).set("g", (float)Math.random()).set("b", (float)Math.random());
-        });
-
-        instant(Suite.set(xs.weak()).set(keyboard.getKey(GLFW_KEY_LEFT).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), xs,
-                s -> s.asInt() -1);
+        instant(Suite.put(xs.weak()).put(keyboard.getKey(GLFW_KEY_LEFT).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), xs,
+                $ -> $.at().asInt() -1);
 
         instant(Suite.set(xs.weak()).set(keyboard.getKey(GLFW_KEY_RIGHT).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), xs,
-                s -> s.asInt() +1);
+                $ -> $.at().asInt() +1);
 
         instant(Suite.set(ys.weak()).set(keyboard.getKey(GLFW_KEY_DOWN).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), ys,
-                s -> s.asInt() +1);
+                $ -> $.at().asInt() +1);
 
         instant(Suite.set(ys.weak()).set(keyboard.getKey(GLFW_KEY_UP).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), ys,
-                s -> s.asInt() -1);
+                $ -> $.at().asInt() -1);
 
-        instant(Suite.set(w.weak()).set(keyboard.getKey(GLFW_KEY_W).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), w,
-                s -> keyboard.getKey(GLFW_KEY_LEFT_SHIFT).getPressed().get() ? s.asInt() + 10 : s.asInt() - 10);
+        instant(Suite.put(w.weak()).put(keyboard.getKey(GLFW_KEY_W).getState().suppress((s1, s2) -> s2 == GLFW_RELEASE)), w,
+                $ -> keyboard.getKey(GLFW_KEY_LEFT_SHIFT).getPressed().get() ? $.at().asInt() + 10 : $.at().asInt() - 10);
     }
 
     @Override

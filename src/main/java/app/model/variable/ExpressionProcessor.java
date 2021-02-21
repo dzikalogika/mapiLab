@@ -1,8 +1,6 @@
 package app.model.variable;
 
-import jorg.processor.IntProcessor;
-import jorg.processor.ProcessorException;
-import suite.suite.Slot;
+import suite.processor.IntProcessor;
 import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.action.Action;
@@ -166,51 +164,51 @@ public class ExpressionProcessor implements IntProcessor {
             set("sum", (Action)Exp::sum);
 
 
-    private Subject functions;
-    private Subject inputs;
-    private Subject outputs;
+    private Subject $functions;
+    private Subject $inputs;
+    private Subject $outputs;
 
-    private Subject actions;
+    private Subject $actions;
     private StringBuilder builder;
     private State state;
-    private Subject rpn;
+    private Subject $rpn;
     private boolean emptyValueBuffer;
     private int automaticOutput;
 
     @Override
-    public Subject ready() {
-        inputs = Suite.set();
-        functions = Suite.set();
-        outputs = Suite.set();
-        rpn = Suite.set();
-        actions = Suite.set();
+    public void getReady() {
+        $inputs = Suite.set();
+        $functions = Suite.set();
+        $outputs = Suite.set();
+        $rpn = Suite.set();
+        $actions = Suite.set();
         state = State.PENDING;
         emptyValueBuffer = true;
         automaticOutput = 0;
-        return Suite.set();
     }
 
     private void pushAction(ActionProfile profile) {
-        for(var s : actions.reverse()) {
-            if(s.assigned(ActionProfile.class)) {
-                ActionProfile actionProfile = s.asExpected();
+        for(var $ : $actions.reverse()) {
+            var $i = $.at();
+            if($i.is(ActionProfile.class)) {
+                ActionProfile actionProfile = $i.asExpected();
                 if(profile.pushes(actionProfile)) {
-                    rpn.add(actionProfile);
-                    actions.unset(s.key().direct());
+                    $rpn.put(actionProfile);
+                    $actions.unset($.direct());
                 } else break;
-            } else if(s.direct() == SpecialSymbol.SPLINE) {
+            } else if($i.direct() == SpecialSymbol.SPLINE) {
                 break;
             } else {
-                rpn.add(s.direct());
-                actions.unset(s.key().direct());
+                $rpn.put($i.direct());
+                $actions.unset($.direct());
             }
         }
-        actions.add(profile);
+        $actions.put(profile);
         emptyValueBuffer = true;
     }
 
     @Override
-    public void advance(int i) throws ProcessorException {
+    public void advance(int i) {
         switch (state) {
             case PENDING:
                 if(Character.isDigit(i)) {
@@ -232,63 +230,63 @@ public class ExpressionProcessor implements IntProcessor {
                 } else if(i == '^') {
                     pushAction(exponentiation);
                 } else if(i == '%') {
-                    rpn.add(proportion);
+                    $rpn.put(proportion);
                 } else if(i == '&') {
                     pushAction(minimum);
                 } else if(i == '|') {
                     pushAction(maximum);
                 }   else if(i == '=') {
-                    VarNumber var = rpn.recent().asExpected();
-                    outputs.put(var.symbol, var);
-                    if(emptyValueBuffer)rpn.add(var);
+                    VarNumber var = $rpn.last().in().asExpected();
+                    $outputs.set(var.symbol, var);
+                    if(emptyValueBuffer) $rpn.put(var);
                     pushAction(attribution);
                 } else if(i == '(') {
-                    actions.add(SpecialSymbol.SPLINE);
-                    rpn.add(SpecialSymbol.OPEN_BRACKET);
+                    $actions.put(SpecialSymbol.SPLINE);
+                    $rpn.put(SpecialSymbol.OPEN_BRACKET);
                     emptyValueBuffer = true;
                 } else if(i == ')') {
-                    for(var s : actions.reverse()) {
-                        actions.unset(s.key().direct());
-                        if(s.direct() == SpecialSymbol.SPLINE) {
+                    for(var $ : $actions.reverse()) {
+                        $actions.unset($.direct());
+                        if($.in().direct() == SpecialSymbol.SPLINE) {
                             break;
                         } else {
-                            rpn.add(s.direct());
+                            $rpn.put($.in().direct());
                         }
                     }
-                    rpn.add(SpecialSymbol.CLOSE_BRACKET);
+                    $rpn.put(SpecialSymbol.CLOSE_BRACKET);
                 } else if(i == ',') {
-                    for(var s : actions.reverse()) {
-                        if(s.direct() == SpecialSymbol.SPLINE) {
+                    for(var $ : $actions.reverse()) {
+                        if($.in().direct() == SpecialSymbol.SPLINE) {
                             break;
                         } else {
-                            rpn.add(s.direct());
-                            actions.unset(s.key().direct());
+                            $rpn.put($.in().direct());
+                            $actions.unset($.direct());
                         }
                     }
-                    if(rpn.recent().direct() != attribution) {
+                    if($rpn.last().in().direct() != attribution) {
                         VarNumber var = new VarNumber("" + automaticOutput++);
-                        outputs.put(var.symbol, var);
-                        rpn.add(var).add(postAttribution);
+                        $outputs.set(var.symbol, var);
+                        $rpn.put(var).put(postAttribution);
                     }
                     emptyValueBuffer = true;
                 } else if(i == ';') {
                     int brackets = 0;
-                    for(var s : rpn.reverse()) {
-                        if(s.direct() == SpecialSymbol.OPEN_BRACKET) {
+                    for(var $ : $rpn.reverse()) {
+                        if($.in().direct() == SpecialSymbol.OPEN_BRACKET) {
                             if (--brackets < 0) break;
-                        } else if(s.direct() == SpecialSymbol.CLOSE_BRACKET) {
+                        } else if($.in().direct() == SpecialSymbol.CLOSE_BRACKET) {
                             ++brackets;
                         }
-                        actions.add(s.direct());
-                        rpn.unset(s.key().direct());
+                        $actions.put($.in().direct());
+                        $rpn.unset($.direct());
                     }
-                    actions.add(SpecialSymbol.SPLINE);
+                    $actions.put(SpecialSymbol.SPLINE);
                     emptyValueBuffer = true;
                 }/* else if(i == '`') {
                     builder = new StringBuilder();
                     state = State.SYMBOL;
                 }*/ else if(!Character.isWhitespace(i)) {
-                    throw new ProcessorException();
+                    throw new RuntimeException();
                 }
                 break;
             case NUMBER:
@@ -297,12 +295,12 @@ public class ExpressionProcessor implements IntProcessor {
                 } else if(!Character.isWhitespace(i)) {
                     try {
                         double d = Double.parseDouble(builder.toString());
-                        rpn.add(d);
+                        $rpn.put(d);
                         state = State.PENDING;
                         emptyValueBuffer = false;
                         advance(i);
                     } catch (NumberFormatException nfe) {
-                        throw new ProcessorException(nfe);
+                        throw new RuntimeException(nfe);
                     }
                 }
                 break;
@@ -311,16 +309,16 @@ public class ExpressionProcessor implements IntProcessor {
                     builder.appendCodePoint(i);
                 } else if(i == '(') {
                     String str = builder.toString();
-                    pushAction(functions.getSaved(str, new FunctionProfile(str + "()")).asExpected());
-                    actions.add(SpecialSymbol.SPLINE);
-                    rpn.add(SpecialSymbol.OPEN_BRACKET);
+                    pushAction($functions.sate(str, Suite.set(new FunctionProfile(str + "()"))).in().asExpected());
+                    $actions.put(SpecialSymbol.SPLINE);
+                    $rpn.put(SpecialSymbol.OPEN_BRACKET);
                     state = State.PENDING;
                 } else if(!Character.isWhitespace(i)) {
                     VarNumber var = new VarNumber(builder.toString());
-                    Subject in = inputs.get(var.symbol);
-                    if(in.settled()) var = in.asExpected();
-                    else if(i != '=') inputs.set(var.symbol, var);
-                    rpn.add(var);
+                    Subject $in = $inputs.get(var.symbol);
+                    if($in.present()) var = $in.in().asExpected();
+                    else if(i != '=') $inputs.set(var.symbol, var);
+                    $rpn.put(var);
                     emptyValueBuffer = false;
                     state = State.PENDING;
                     advance(i);
@@ -330,151 +328,151 @@ public class ExpressionProcessor implements IntProcessor {
     }
 
     @Override
-    public Subject finish() throws ProcessorException {
+    public Subject finish() {
         switch (state) {
             case NUMBER -> {
                 try {
                     double d = Double.parseDouble(builder.toString());
-                    rpn.add(d);
+                    $rpn.put(d);
                 } catch (NumberFormatException nfe) {
-                    throw new ProcessorException(nfe);
+                    throw new RuntimeException(nfe);
                 }
             }
             case SYMBOL -> {
                 VarNumber var = new VarNumber(builder.toString());
-                var = inputs.getSaved(var.symbol, var).asExpected();
-                rpn.add(var);
+                var = $inputs.sate(var.symbol, Suite.set(var)).in().asExpected();
+                $rpn.put(var);
             }
         }
-        for(var s : actions.reverse()) {
-            if(s.direct() != SpecialSymbol.SPLINE) {
-                rpn.add(s.direct());
+        for(var $ : $actions.reverse().eachIn()) {
+            if($.direct() != SpecialSymbol.SPLINE) {
+                $rpn.put($.direct());
             }
         }
-        if(rpn.recent().direct() != attribution) {
+        if($rpn.last().in().direct() != attribution) {
             VarNumber var = new VarNumber("" + automaticOutput);
-            outputs.put(var.symbol, var);
-            rpn.add(var).add(postAttribution);
+            $outputs.set(var.symbol, var);
+            $rpn.put(var).put(postAttribution);
         }
 //        System.out.println(rpn);
-        return Suite.set(new Exp(inputs, outputs) {
+        return Suite.set(new Exp($inputs, $outputs) {
             @Override
-            public Subject play(Subject subject) {
-                for (var v : inputs.values().filter(VarNumber.class)) {
-                    Object o = subject.get(v.symbol).orGiven(null);
+            public Subject play(Subject $subject) {
+                for (var v : ExpressionProcessor.this.$inputs.eachIn().eachAs(VarNumber.class)) {
+                    Object o = $subject.in(v.symbol).orGiven(null);
                     if(o instanceof Number) v.value = (Number)o;
                     else if(o instanceof Boolean) v.value = (Boolean) o ? 1 : -1;
                 }
-                for (var f : functions) {
-                    String funName = f.key().asString();
-                    Subject s1 = subject.get(funName);
-                    if (s1.settled()) f.asGiven(FunctionProfile.class).action = s1.asExpected();
+                for (var $f : $functions) {
+                    String funName = $f.asString();
+                    Subject $ = $subject.in(funName).get();
+                    if ($.present()) $f.in().as(FunctionProfile.class).action = $.asExpected();
                     else {
-                        s1 = descriptiveActionProfiles.get(funName);
-                        if (s1.settled()) f.asGiven(FunctionProfile.class).action = s1.asExpected();
+                        $ = descriptiveActionProfiles.in(funName).get();
+                        if ($.present()) $f.in().as(FunctionProfile.class).action = $.asExpected();
                         else throw new RuntimeException("Function '" + funName + "' is not defined");
                     }
                 }
-                Subject bracketStack = Suite.set();
-                Subject result = Suite.set();
-                for (var su : rpn) {
-                    if (su.assigned(Number.class)) {
-                        result.add(su.direct());
-                    } else if (su.assigned(ActionProfile.class)) {
-                        if (su.assigned(FunctionProfile.class)) {
-                            Subject p = Suite.set();
-                            for (var s1 : result.reverse()) {
-                                if (s1.direct() == bracketStack.recent().direct()) {
-                                    bracketStack.unset(bracketStack.recent().key().direct());
+                Subject $bracketStack = Suite.set();
+                Subject $result = Suite.set();
+                for (var $ : $rpn.eachIn()) {
+                    if ($.is(Number.class)) {
+                        $result.put($.direct());
+                    } else if ($.is(ActionProfile.class)) {
+                        if ($.is(FunctionProfile.class)) {
+                            Subject $p = Suite.set();
+                            for (var $1 : $result.reverse()) {
+                                if ($1.in().direct() == $bracketStack.last().in().direct()) {
+                                    $bracketStack.unset($bracketStack.last().direct());
                                     break;
                                 }
-                                result.unset(s1.key().direct());
-                                p.addAt(Slot.PRIME, s1.direct());
+                                $result.unset($1.direct());
+                                $p.exactPut($.direct(), $1.in().direct());
                             }
-                            p = su.asGiven(FunctionProfile.class).action.play(p);
-                            result.addAll(p.values());
+                            $p = $.as(FunctionProfile.class).action.play($p);
+                            $result.putAll($p.eachIn().eachDirect());
                         } else {
-                            su.asGiven(ActionProfile.class).action.play(result);
+                            $.as(ActionProfile.class).action.play($result);
                         }
-                    } else if(su.direct() == SpecialSymbol.OPEN_BRACKET){
-                        bracketStack.inset(result.recent());
+                    } else if($.direct() == SpecialSymbol.OPEN_BRACKET){
+                        $bracketStack.alter($result.last());
                     }
                 }
-                return outputs.map(so -> Suite.set(so.key().direct(), so.asGiven(VarNumber.class).doubleValue())).set();
+                return ExpressionProcessor.this.$outputs.convert($ -> Suite.set($.direct(), $.in().as(VarNumber.class).doubleValue())).set();
             }
         });
     }
 
-    protected static void addition(Subject s) {
-        double a = s.takeAt(Slot.RECENT).asDouble();
-        double b = s.takeAt(Slot.RECENT).asDouble();
-        s.add(b + a);
+    protected static void addition(Subject $) {
+        double a = $.take($.last().direct()).at().asDouble();
+        double b = $.take($.last().direct()).at().asDouble();
+        $.put(b + a);
     }
 
-    protected static void subtraction(Subject s) {
-        double a = s.takeAt(Slot.RECENT).asDouble();
-        double b = s.takeAt(Slot.RECENT).asDouble();
-        s.add(b - a);
+    protected static void subtraction(Subject $) {
+        double a = $.take($.last().direct()).at().asDouble();
+        double b = $.take($.last().direct()).at().asDouble();
+        $.put(b - a);
     }
 
-    protected static void multiplication(Subject s) {
-        double a = s.takeAt(Slot.RECENT).asDouble();
-        double b = s.takeAt(Slot.RECENT).asDouble();
-        s.add(b * a);
+    protected static void multiplication(Subject $) {
+        double a = $.take($.last().direct()).at().asDouble();
+        double b = $.take($.last().direct()).at().asDouble();
+        $.put(b * a);
     }
 
-    protected static void division(Subject s) {
-        double a = s.takeAt(Slot.RECENT).asDouble();
-        double b = s.takeAt(Slot.RECENT).asDouble();
-        s.add(b / a);
+    protected static void division(Subject $) {
+        double a = $.take($.last().direct()).at().asDouble();
+        double b = $.take($.last().direct()).at().asDouble();
+        $.put(b / a);
     }
 
-    protected static void exponentiation(Subject s) {
-        double a = s.takeAt(Slot.RECENT).asDouble();
-        double b = s.takeAt(Slot.RECENT).asDouble();
-        s.add(Math.pow(b, a));
+    protected static void exponentiation(Subject $) {
+        double a = $.take($.last().direct()).at().asDouble();
+        double b = $.take($.last().direct()).at().asDouble();
+        $.put(Math.pow(b, a));
     }
 
-    protected static void proportion(Subject s) {
-        double a = s.takeAt(Slot.RECENT).asDouble();
-        s.add(a / 100.0);
+    protected static void proportion(Subject $) {
+        double a = $.take($.last().direct()).at().asDouble();
+        $.put(a / 100.0);
     }
 
-    protected static void attribution(Subject s) {
-        double a = s.takeAt(Slot.RECENT).asDouble();
-        VarNumber var = s.recent().asExpected();
+    protected static void attribution(Subject $) {
+        double a = $.take($.last().direct()).at().asDouble();
+        VarNumber var = $.last().at().asExpected();
         var.value = a;
     }
 
-    protected static void postAttribution(Subject s) {
-        VarNumber var = s.takeAt(Slot.RECENT).asExpected();
-        var.value = s.takeAt(Slot.RECENT).asDouble();
+    protected static void postAttribution(Subject $) {
+        VarNumber var = $.take($.last().direct()).at().asExpected();
+        var.value = $.take($.last().direct()).at().asDouble();
     }
 
-    protected static void inversion(Subject s) {
-        double a = s.takeAt(Slot.RECENT).asDouble();
-        s.add(1 / a);
+    protected static void inversion(Subject $) {
+        double a = $.take($.last().direct()).at().asDouble();
+        $.put(1 / a);
     }
 
-    protected static void reversion(Subject s) {
-        double a = s.takeAt(Slot.RECENT).asDouble();
-        s.add(-a);
+    protected static void reversion(Subject $) {
+        double a = $.take($.last().direct()).at().asDouble();
+        $.put(-a);
     }
 
-    protected static void absolution(Subject s) {
-        double a = s.takeAt(Slot.RECENT).asDouble();
-        s.add(Math.abs(a));
+    protected static void absolution(Subject $) {
+        double a = $.take($.last().direct()).at().asDouble();
+        $.put(Math.abs(a));
     }
 
-    protected static void maximum(Subject s) {
-        double a = s.takeAt(Slot.RECENT).asDouble();
-        double b = s.takeAt(Slot.RECENT).asDouble();
-        s.add(Math.max(a, b));
+    protected static void maximum(Subject $) {
+        double a = $.take($.last().direct()).at().asDouble();
+        double b = $.take($.last().direct()).at().asDouble();
+        $.put(Math.max(a, b));
     }
 
-    protected static void minimum(Subject s) {
-        double a = s.takeAt(Slot.RECENT).asDouble();
-        double b = s.takeAt(Slot.RECENT).asDouble();
-        s.add(Math.min(a, b));
+    protected static void minimum(Subject $) {
+        double a = $.take($.last().direct()).at().asDouble();
+        double b = $.take($.last().direct()).at().asDouble();
+        $.put(Math.min(a, b));
     }
 }

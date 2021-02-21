@@ -3,7 +3,7 @@ package app.model.variable;
 import suite.suite.Subject;
 import suite.suite.Suite;
 import suite.suite.action.Action;
-import suite.suite.util.Fluid;
+import suite.suite.util.Series;
 
 import java.lang.ref.WeakReference;
 import java.util.function.Function;
@@ -28,56 +28,56 @@ public final class NumberVar extends Var<Number> {
         return v;
     }
 
-    public static NumberVar compound(Number value, Fluid components, Action recipe, Object resultKey) {
+    public static NumberVar compound(Number value, Series $components, Action recipe, Object resultKey) {
         NumberVar composite = new NumberVar(value, false);
-        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(resultKey, composite), recipe);
+        Fun.compose(ValueProducer.prepareComponents($components, composite), Suite.set(resultKey, composite), recipe);
         return composite;
     }
 
-    public static NumberVar compound(Fluid components, Action recipe, Object resultKey) {
+    public static NumberVar compound(Series $components, Action recipe, Object resultKey) {
         NumberVar composite = new NumberVar(null, false);
-        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(resultKey, composite), recipe).press(true);
+        Fun.compose(ValueProducer.prepareComponents($components, composite), Suite.set(resultKey, composite), recipe).press(true);
         return composite;
     }
 
 
-    public static NumberVar compound(Number value, Fluid components, Function<Subject, Number> recipe) {
+    public static NumberVar compound(Number value, Series $components, Function<Subject, Number> recipe) {
         NumberVar composite = new NumberVar(value, false);
-        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(OWN_VALUE, composite),
+        Fun.compose(ValueProducer.prepareComponents($components, composite), Suite.set(OWN_VALUE, composite),
                 s -> Suite.set(OWN_VALUE, recipe.apply(s)));
         return composite;
     }
 
-    public static NumberVar compound(Fluid components, Function<Subject, Number> recipe) {
+    public static NumberVar compound(Series $components, Function<Subject, Number> recipe) {
         NumberVar composite = new NumberVar(null, false);
-        Fun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(OWN_VALUE, composite),
+        Fun.compose(ValueProducer.prepareComponents($components, composite), Suite.set(OWN_VALUE, composite),
                 s -> Suite.set(OWN_VALUE, recipe.apply(s))).press(true);
         return composite;
     }
 
-    public static NumberVar expressed(Fluid components, Exp expression) {
+    public static NumberVar expressed(Series $components, Exp expression) {
         NumberVar composite = new NumberVar(null, false);
-        BeltFun.express(ValueProducer.prepareComponents(components, composite),
-                Suite.add(composite), expression).press(true);
+        BeltFun.express(ValueProducer.prepareComponents($components, composite),
+                Suite.put(composite), expression).press(true);
         return composite;
     }
 
-    public static NumberVar expressed(Fluid components, String expression) {
+    public static NumberVar expressed(Series $components, String expression) {
         NumberVar composite = new NumberVar(null, false);
-        BeltFun.express(ValueProducer.prepareComponents(components, composite),
-                Suite.add(composite), expression).press(true);
+        BeltFun.express(ValueProducer.prepareComponents($components, composite),
+                Suite.put(composite), expression).press(true);
         return composite;
     }
 
-    public static NumberVar expressed(Number value, Fluid components, Action recipe) {
+    public static NumberVar expressed(Number value, Series $components, Action recipe) {
         NumberVar composite = new NumberVar(value, false);
-        BeltFun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(composite), recipe);
+        BeltFun.compose(ValueProducer.prepareComponents($components, composite), Suite.put(composite), recipe);
         return composite;
     }
 
-    public static NumberVar expressed(Fluid components, Action recipe) {
+    public static NumberVar expressed(Series $components, Action recipe) {
         NumberVar composite = new NumberVar(null, false);
-        BeltFun.compose(ValueProducer.prepareComponents(components, composite), Suite.set(composite), recipe).press(true);
+        BeltFun.compose(ValueProducer.prepareComponents($components, composite), Suite.put(composite), recipe).press(true);
         return composite;
     }
 
@@ -85,8 +85,8 @@ public final class NumberVar extends Var<Number> {
         return expressed( Playground.abc(params), e);
     }
 
-    public static NumberVar expressed(String e, Fluid params) {
-        return expressed(params, e);
+    public static NumberVar expressed(String e, Series $params) {
+        return expressed($params, e);
     }
 
     public static NumberVar add(Object a, Object b) {
@@ -152,8 +152,8 @@ public final class NumberVar extends Var<Number> {
     @Override
     public void set(Object value) {
         value(value);
-        for(var s : outputs) {
-            WeakReference<Fun> ref = s.asExpected();
+        for(var $ : $outputs) {
+            WeakReference<Fun> ref = $.asExpected();
             Fun fun = ref.get();
             if(fun != null) {
                 fun.press(true);
@@ -166,9 +166,9 @@ public final class NumberVar extends Var<Number> {
         if(value instanceof Number) this.value = (Number) value;
         else if(value instanceof Boolean) this.value = (Boolean) value ? 1 : -1;
         else this.value = null;
-        if(detections != null)detections.unset(fun); // Jeśli wywołana w gałęzi równoległej, oznacz jako wykonana.
-        for(var s : outputs) {
-            WeakReference<Fun> ref = s.asExpected();
+        if($detections != null)$detections.unset(fun); // Jeśli wywołana w gałęzi równoległej, oznacz jako wykonana.
+        for(var $ : $outputs) {
+            WeakReference<Fun> ref = $.asExpected();
             Fun f = ref.get();
             if(f != null && f != fun) {
                 f.press(true);

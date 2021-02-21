@@ -53,7 +53,7 @@ public class Mouse {
         }
     }
 
-    Subject buttons = Suite.thready();
+    Subject $buttons = Suite.thready();
     Var<Vector2d> position = SimpleVar.emit();
     Scroll scroll = new Scroll();
 
@@ -71,7 +71,11 @@ public class Mouse {
     }
 
     public Button getButton(int button) {
-        return buttons.getDone(button, Button::new).asExpected();
+        var $ = $buttons.in(button).set();
+        if($.absent()) {
+            $.set(new Button());
+        }
+        return $.asExpected();
     }
 
     public Scroll getScroll() {

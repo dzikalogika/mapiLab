@@ -2,15 +2,16 @@ package app.model;
 
 import app.model.input.Keyboard;
 import app.model.input.Mouse;
+import app.model.util.Numeric;
 import app.model.util.PercentParcel;
 import app.model.util.PixelParcel;
 import app.model.variable.*;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
-import suite.suite.Slot;
 import suite.suite.Subject;
 import suite.suite.Suite;
+import suite.suite.util.Sequence;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -22,37 +23,35 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Window extends Composite {
 
-    static Subject windows = Suite.set();
+    static Subject $windows = Suite.set();
 
-    public static void play(Subject sub) {
+    public static void play(Subject $sub) {
         glfwSetErrorCallback(GLFWErrorCallback.createPrint(System.err));
         if ( !glfwInit() ) throw new IllegalStateException("Unable to initialize GLFW");
-
         Window window = Window.create(
-                sub.get(Window.class).orGiven(Window.class),
-                sub.get(Dim.WIDTH).orGiven(800),
-                sub.get(Dim.HEIGHT).orGiven(600),
-                sub.get(Color.RED).orGiven(0.2f),
-                sub.get(Color.GREEN).orGiven(0.4f),
-                sub.get(Color.BLUE).orGiven(0.4f));
-
+                $sub.in(Window.class).orGiven(Window.class),
+                    $sub.in(Dim.WIDTH).orGiven(800),
+                $sub.in(Dim.HEIGHT).orGiven(600),
+                $sub.in(Color.RED).orGiven(0.2f),
+                $sub.in(Color.GREEN).orGiven(0.4f),
+                $sub.in(Color.BLUE).orGiven(0.4f));
         glfwShowWindow(window.getGlid());
 
         glfwSwapInterval(1);
 
-        while(windows.settled())
+        while($windows.present())
         {
 //            float currentFrame = (float)glfwGetTime();
 //            deltaTime = currentFrame - lastFrame;
 //            lastFrame = currentFrame;
 
             glfwPollEvents();
-            for(Window win : windows.values(Window.class)) {
+            for(Window win : $windows.eachIn().eachAs(Window.class)) {
                 win.play();
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 win.print();
                 glfwSwapBuffers(win.getGlid());
-                if(glfwWindowShouldClose(win.getGlid()))windows.unset(win.getGlid());
+                if(glfwWindowShouldClose(win.getGlid())) $windows.unset(win.getGlid());
             }
         }
 
@@ -64,8 +63,10 @@ public class Window extends Composite {
         try {
             window = windowType.getConstructor(int.class, int.class).newInstance(width, height);
             glfwMakeContextCurrent(window.getGlid());
+
             GL.createCapabilities();
             GLUtil.setupDebugMessageCallback();
+
 //            glEnable(GL_ALPHA_TEST);
             glEnable(GL_DEPTH_TEST);
             glEnable(GL_CULL_FACE);
@@ -76,13 +77,14 @@ public class Window extends Composite {
             window.greenColor.set(green);
             window.blueColor.set(blue);
             window.alphaColor.set(1);
-            window.intent(num(window.redColor, window.greenColor, window.blueColor, window.alphaColor), s -> {
-                glClearColor(s.asFloat(), s.get(1).asFloat(), s.get(2).asFloat(), s.get(3).asFloat());
-            }).press(true);
 
+            window.intent(Sequence.of(window.redColor, window.greenColor, window.blueColor, window.alphaColor).series().convert(new Numeric()),//;num(window.redColor, window.greenColor, window.blueColor, window.alphaColor),
+                    s -> glClearColor(s.in(0).get().asFloat(), s.in(1).get().asFloat(),
+                                s.in(2).get().asFloat(), s.in(3).get().asFloat()))
+                    .press(true);
             window.ready();
             long glid = window.getGlid();
-            windows.setAt(Slot.PRIME, glid, window);
+            $windows.exactSet($windows.first().direct(), glid, window);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             e.printStackTrace();
         }
@@ -126,7 +128,7 @@ public class Window extends Composite {
 
     @Override
     void print() {
-        components.values().filter(Component.class).forEach(Component::print);
+        $components.eachAs(Component.class).forEach(Component::print);
     }
 
     protected void ready() {}
@@ -163,41 +165,42 @@ public class Window extends Composite {
     private static final Exp textExpRightBottom = Exp.compile("a - a * b / 100");
 
     Subject textTransform(Subject sketch) {
-        Subject r = Suite.set();
-        for(var s : sketch) {
-            var k = s.key().direct();
+        Subject $r = Suite.set();
+        for(var $ : sketch) {
+            var $v = $.in().get();
+            var k = $.direct();
             if(k == Side.LEFT || k == Side.RIGHT || k == Pos.HORIZONTAL_CENTER) {
-                if(s.assigned(PixelParcel.class)) {
-                    PixelParcel pixelParcel = s.asExpected();
+                if($v.is(PixelParcel.class)) {
+                    PixelParcel pixelParcel = $v.asExpected();
                     var wb = pixelParcel.waybill;
-                    if(wb == null || wb == Side.LEFT) r.set(k, pixelParcel.ware);
-                    else if(wb == Side.RIGHT) r.set(k, NumberVar.difference(width, pixelParcel.ware));
-                } else if(s.assigned(PercentParcel.class)) {
-                    PercentParcel percentParcel = s.asExpected();
+                    if(wb == null || wb == Side.LEFT) $r.set(k, pixelParcel.ware);
+                    else if(wb == Side.RIGHT) $r.set(k, NumberVar.difference(width, pixelParcel.ware));
+                } else if($v.is(PercentParcel.class)) {
+                    PercentParcel percentParcel = $v.asExpected();
                     var wb = percentParcel.waybill;
-                    if(wb == null || wb == Side.LEFT) r.set(k, NumberVar.expressed(
+                    if(wb == null || wb == Side.LEFT) $r.set(k, NumberVar.expressed(
                             abc(width, percentParcel.ware), textExpLeftTop));
-                    else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed(
+                    else if(wb == Side.RIGHT) $r.set(k, NumberVar.expressed(
                             abc(width, percentParcel.ware), textExpRightBottom));
                 }
             } else if(k == Side.BOTTOM || k == Side.TOP || k == Pos.VERTICAL_CENTER) {
-                if(s.assigned(PixelParcel.class)) {
-                    PixelParcel pixelParcel = s.asExpected();
+                if($v.is(PixelParcel.class)) {
+                    PixelParcel pixelParcel = $v.asExpected();
                     var wb = pixelParcel.waybill;
-                    if(wb == null || wb == Side.TOP) r.set(k, pixelParcel.ware);
-                    else if(wb == Side.BOTTOM) r.set(k, NumberVar.difference(height, pixelParcel.ware));
-                } else if(s.assigned(PercentParcel.class)) {
-                    PercentParcel percentParcel = s.asExpected();
+                    if(wb == null || wb == Side.TOP) $r.set(k, pixelParcel.ware);
+                    else if(wb == Side.BOTTOM) $r.set(k, NumberVar.difference(height, pixelParcel.ware));
+                } else if($v.is(PercentParcel.class)) {
+                    PercentParcel percentParcel = $v.asExpected();
                     var wb = percentParcel.waybill;
-                    if(wb == null || wb == Side.TOP) r.set(k, NumberVar.expressed(
+                    if(wb == null || wb == Side.TOP) $r.set(k, NumberVar.expressed(
                             abc(height, percentParcel.ware), textExpLeftTop));
-                    else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed(
+                    else if(wb == Side.BOTTOM) $r.set(k, NumberVar.expressed(
                             abc(height, percentParcel.ware), textExpRightBottom));
                 }
-            } else r.inset(s);
+            } else $r.alter($);
         }
-        r.put("pw", width).put("ph", height);
-        return r;
+        $r.set("pw", width).set("ph", height);
+        return $r;
     }
 
     private static final Exp rectExpLeftBottom = Exp.compile("a * 2 / b - 1");
@@ -208,68 +211,69 @@ public class Window extends Composite {
     private static final Exp rectExpPercentWidthHeight = Exp.compile("a / 50");
 
     Subject rectTransform(Subject sketch) {
-        Subject r = Suite.set();
-        for(var s : sketch) {
-            var k = s.key().direct();
+        Subject $r = Suite.set();
+        for(var $ : sketch) {
+            var $v = $.at();
+            var k = $.direct();
             if(k == Pos.HORIZONTAL_CENTER || k == Side.LEFT || k == Side.RIGHT) {
-                if(s.assigned(PixelParcel.class)) {
-                    PixelParcel pixelParcel = s.asExpected();
+                if($v.is(PixelParcel.class)) {
+                    PixelParcel pixelParcel = $v.asExpected();
                     var wb = pixelParcel.waybill;
-                    if(wb == null || wb == Side.LEFT) r.set(k, NumberVar.expressed(
+                    if(wb == null || wb == Side.LEFT) $r.set(k, NumberVar.expressed(
                             abc(pixelParcel.ware, width), rectExpLeftBottom));
-                    else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed(
+                    else if(wb == Side.RIGHT) $r.set(k, NumberVar.expressed(
                             abc(pixelParcel.ware, width), rectExpRightTop));
-                } else if(s.assigned(PercentParcel.class)) {
-                    PercentParcel percentParcel = s.asExpected();
+                } else if($v.is(PercentParcel.class)) {
+                    PercentParcel percentParcel = $v.asExpected();
                     var wb = percentParcel.waybill;
-                    if(wb == null || wb == Side.LEFT) r.set(k, NumberVar.expressed(
+                    if(wb == null || wb == Side.LEFT) $r.set(k, NumberVar.expressed(
                             abc(percentParcel.ware), rectExpPercentLeftBottom));
-                    else if(wb == Side.RIGHT) r.set(k, NumberVar.expressed(
+                    else if(wb == Side.RIGHT) $r.set(k, NumberVar.expressed(
                             abc(percentParcel.ware), rectExpPercentRightTop));
                 }
             } else if(k == Pos.VERTICAL_CENTER || k == Side.TOP || k == Side.BOTTOM) {
-                if(s.assigned(PixelParcel.class)) {
-                    PixelParcel pixelParcel = s.asExpected();
+                if($v.is(PixelParcel.class)) {
+                    PixelParcel pixelParcel = $v.asExpected();
                     var wb = pixelParcel.waybill;
-                    if(wb == null || wb == Side.TOP) r.set(k, NumberVar.expressed(
+                    if(wb == null || wb == Side.TOP) $r.set(k, NumberVar.expressed(
                             abc(pixelParcel.ware, height), rectExpRightTop));
-                    else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed(
+                    else if(wb == Side.BOTTOM) $r.set(k, NumberVar.expressed(
                             abc(pixelParcel.ware, height), rectExpLeftBottom));
-                } else if(s.assigned(PercentParcel.class)) {
-                    PercentParcel percentParcel = s.asExpected();
+                } else if($v.is(PercentParcel.class)) {
+                    PercentParcel percentParcel = $v.asExpected();
                     var wb = percentParcel.waybill;
-                    if(wb == null || wb == Side.TOP) r.set(k, NumberVar.expressed(
+                    if(wb == null || wb == Side.TOP) $r.set(k, NumberVar.expressed(
                             abc(percentParcel.ware), rectExpPercentRightTop));
-                    else if(wb == Side.BOTTOM) r.set(k, NumberVar.expressed(
+                    else if(wb == Side.BOTTOM) $r.set(k, NumberVar.expressed(
                             abc(percentParcel.ware), rectExpPercentLeftBottom));
                 }
             } else if(k == Dim.WIDTH) {
-                if(s.assigned(PixelParcel.class)) {
-                    PixelParcel pixelParcel = s.asExpected();
+                if($v.is(PixelParcel.class)) {
+                    PixelParcel pixelParcel = $v.asExpected();
                     var wb = pixelParcel.waybill;
-                    if(wb == null) r.set(Dim.WIDTH, NumberVar.expressed(
+                    if(wb == null) $r.set(Dim.WIDTH, NumberVar.expressed(
                             abc(pixelParcel.ware, width), rectExpWidthHeight));
-                } else if(s.assigned(PercentParcel.class)) {
-                    PercentParcel percentParcel = s.asExpected();
+                } else if($v.is(PercentParcel.class)) {
+                    PercentParcel percentParcel = $v.asExpected();
                     var wb = percentParcel.waybill;
-                    if(wb == null) r.set(Dim.WIDTH, NumberVar.expressed(
+                    if(wb == null) $r.set(Dim.WIDTH, NumberVar.expressed(
                             abc(percentParcel.ware), rectExpPercentWidthHeight));
                 }
             } else if(k == Dim.HEIGHT) {
-                if(s.assigned(PixelParcel.class)) {
-                    PixelParcel pixelParcel = s.asExpected();
+                if($v.is(PixelParcel.class)) {
+                    PixelParcel pixelParcel = $v.asExpected();
                     var wb = pixelParcel.waybill;
-                    if(wb == null) r.set(Dim.HEIGHT, NumberVar.expressed(
+                    if(wb == null) $r.set(Dim.HEIGHT, NumberVar.expressed(
                             abc(pixelParcel.ware, height), rectExpWidthHeight));
-                } else if(s.assigned(PercentParcel.class)) {
-                    PercentParcel percentParcel = s.asExpected();
+                } else if($v.is(PercentParcel.class)) {
+                    PercentParcel percentParcel = $v.asExpected();
                     var wb = percentParcel.waybill;
-                    if(wb == null) r.set(Dim.HEIGHT, NumberVar.expressed(
+                    if(wb == null) $r.set(Dim.HEIGHT, NumberVar.expressed(
                             abc(percentParcel.ware), rectExpPercentWidthHeight));
                 }
-            } else r.inset(s);
+            } else $r.alter($);
         }
-        r.put(Composite.class, this).put(Window.class, this);
-        return r;
+        $r.set(Composite.class, this).set(Window.class, this);
+        return $r;
     }
 }

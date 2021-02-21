@@ -1,15 +1,15 @@
 package app.model;
 
 import app.model.variable.Monitor;
-import jorg.jorg.Jorg;
+import brackettree.reader.BracketTree;
 
 
 import static org.lwjgl.opengl.GL30.*;
 
 public class ColorOutfit extends GLObject implements Outfit {
 
-    public static final Shader defaultShader = Jorg.withRecipe(Shader::form).read(
-            Shader.class.getClassLoader().getResourceAsStream("jorg/colorShader.jorg"));
+    public static final Shader defaultShader = BracketTree.read(
+            Shader.class.getClassLoader().getResourceAsStream("jorg/colorShader.jorg")).as(Shader.class);
 
     Color color;
 
