@@ -1,4 +1,4 @@
-package app.model;
+package app.old;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -31,9 +31,9 @@ public class Camera {
     float zoom;
 
     public static Camera form(Subject sub) {
-        float posX = Suite.from(sub).get("posX").or("pos", Subject.class, s -> s.at(0).direct()).orGiven(0f);
-        float posY = Suite.from(sub).get("posY").or("pos", Subject.class, s -> s.at(1).direct()).orGiven(0f);
-        float posZ = Suite.from(sub).get("posZ").or("pos", Subject.class, s -> s.at(2).direct()).orGiven(0f);
+        float posX = Suite.from(sub).get("posX").or("pos", Subject.class, s -> s.at(0).raw()).orGiven(0f);
+        float posY = Suite.from(sub).get("posY").or("pos", Subject.class, s -> s.at(1).raw()).orGiven(0f);
+        float posZ = Suite.from(sub).get("posZ").or("pos", Subject.class, s -> s.at(2).raw()).orGiven(0f);
         float upX = sub.get("upX").orGiven(0f);
         float upY = sub.get("upY").orGiven(1f);
         float upZ = sub.get("upZ").orGiven(0f);

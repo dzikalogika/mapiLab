@@ -1,6 +1,6 @@
-package app.model;
+package app.old;
 
-import app.model.variable.Playground;
+import vars.vars.Playground;
 
 public abstract class Component extends Playground {
     public static final Object STATES = new Object();

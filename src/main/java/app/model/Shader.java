@@ -7,7 +7,7 @@ import suite.suite.Suite;
 
 import static org.lwjgl.opengl.GL45.*;
 
-public class Shader extends GLObject implements Discovered {
+public class Shader implements Discovered {
 
     public static Subject compose(Subject $) {
         String vertex = $.in("vertex").get().asString();
@@ -16,8 +16,10 @@ public class Shader extends GLObject implements Discovered {
         return Suite.set(new Shader(vertex, fragment));
     }
 
+    int glid;
+
     public Shader(String vertex, String fragment) {
-        super(glCreateProgram());
+        glid = glCreateProgram();
 
         int vertexGlid = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertexGlid, vertex);

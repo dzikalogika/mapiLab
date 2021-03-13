@@ -1,7 +1,6 @@
 package app.model;
 
 import app.model.util.PixelParcel;
-import app.model.variable.*;
 import brackettree.reader.BracketTree;
 import org.joml.Matrix4f;
 import suite.suite.Subject;
@@ -11,7 +10,7 @@ import suite.suite.util.Sequence;
 import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
 import static org.lwjgl.opengl.GL13.glActiveTexture;
 
-public class Text extends Component {
+public class Text {}/* extends Component {
 
     public static final Object CONTENT = new Object();
     public static final Object SHADER = new Object();
@@ -40,7 +39,7 @@ public class Text extends Component {
         left.assign($sub.get(Side.LEFT));
         var $s = $sub.in(Pos.HORIZONTAL_CENTER).get();
         if($s.present()) {
-            left.compose(num(graphicModel, size, content, $s.direct()), $ -> {
+            left.compose(num(graphicModel, size, content, $s.raw()), $ -> {
                 TextGraphic textGraphic = $.in(0).asExpected();
                 float size = $.in(1).get().asFloat();
                 String txt = $.in(2).get().asString();
@@ -50,7 +49,7 @@ public class Text extends Component {
         }
         $s = $sub.in(Pos.VERTICAL_CENTER).get();
         if($s.present()) {
-            bottom.compose(num(size, $s.direct()), $ -> {
+            bottom.compose(num(size, $s.raw()), $ -> {
                 float size = $.in(0).get().asFloat();
                 float y = $.in(1).get().asFloat();
                 return y + size / 3;
@@ -77,9 +76,8 @@ public class Text extends Component {
     }
 
     public Text() {
-        projectionMonitor = Monitor.compose(true, Suite.put(shader).put(projectionWidth).put(projectionHeight));
-        colorMonitor = Monitor.compose(true, Suite.set().putAll(Sequence.of(
-                shader, redColor, greenColor, blueColor, alphaColor)));
+        projectionMonitor = Monitor.compose(true, Suite.add(shader, projectionWidth, projectionHeight));
+        colorMonitor = Monitor.compose(true, Suite.add(shader, redColor, greenColor, blueColor, alphaColor));
     }
 
     @Override
@@ -204,7 +202,7 @@ public class Text extends Component {
         }
 
         public T height(Object var) {
-            set(Dim.HEIGHT, /*new PixelParcel(*/var/*, null)*/);
+            set(Dim.HEIGHT, *//*new PixelParcel(*//*var*//*, null)*//*);
             return self();
         }
 
@@ -273,12 +271,12 @@ public class Text extends Component {
             return self();
         }
 
-        public T verticalCenter(Object var, Unit unit, Side base) {
-            set(Pos.VERTICAL_CENTER, unit.parcel(var, base));
-            return self();
+//        public T verticalCenter(Object var, Unit unit, Side base) {
+//            set(Pos.VERTICAL_CENTER, unit.parcel(var, base));
+//            return self();
         }
 
-        public T redColor(Object var) {
+//        public T redColor(Object var) {
             set(Color.RED, var);
             return self();
         }
@@ -299,3 +297,4 @@ public class Text extends Component {
         }
     }
 }
+*/

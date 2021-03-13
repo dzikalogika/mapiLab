@@ -22,7 +22,7 @@ public final class IOUtil {
     }
 
     /**
-     * Reads the specified resource and returns the raw data as a ByteBuffer.
+     * Reads the specified resource and returns the subject data as a ByteBuffer.
      *
      * @param resource   the resource to read
      * @param bufferSize the initial buffer size

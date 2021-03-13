@@ -5,4 +5,5 @@ module lwjgl.main {
     requires org.lwjgl.stb;
     requires brackettree;
     requires suite.main;
+    requires vars.main;
 }

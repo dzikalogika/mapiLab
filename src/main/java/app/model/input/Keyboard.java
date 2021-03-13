@@ -1,22 +1,25 @@
 package app.model.input;
 
-import app.model.variable.SimpleVar;
-import app.model.variable.Var;
 import org.lwjgl.glfw.GLFW;
 import suite.suite.Subject;
 import suite.suite.Suite;
+import vars.vars.Var;
+import vars.vars.Vars;
+
+import static suite.suite.$uite.$;
+import static suite.suite.$uite.$$;
 
 public class Keyboard {
 
     public static class Key {
-        Var<Integer> state = SimpleVar.emit(GLFW.GLFW_RELEASE);
-        Var<Boolean> pressed = SimpleVar.expressed(false, Suite.set(state).set(Var.OWN_VALUE), s -> {
-            int state = s.asInt();
-            boolean pressedSoFar = s.last().asExpected();
+        Var<Integer> state = Vars.set(GLFW.GLFW_RELEASE);
+        Var<Boolean> pressed = Vars.set(false).act(false, $$(state, Var.OWN_VALUE), $ -> {
+            int state = $.in(0).asInt();
+            boolean pressedSoFar = $.in(1).asExpected();
             if(pressedSoFar) {
-                return state == GLFW.GLFW_RELEASE ? Suite.set(false) : Suite.set();
+                return state == GLFW.GLFW_RELEASE ? $(false) : $();
             } else {
-                return state == GLFW.GLFW_RELEASE ? Suite.set() : Suite.set(true);
+                return state == GLFW.GLFW_RELEASE ? $() : $(true);
             }
         });
 
@@ -72,8 +75,8 @@ public class Keyboard {
     }
 
     private final Subject $keys = Suite.thready();
-    private final Var<KeyEvent> keyEvent = SimpleVar.emit();
-    private final Var<CharEvent> charEvent = SimpleVar.emit();
+    private final Var<KeyEvent> keyEvent = Vars.set();
+    private final Var<CharEvent> charEvent = Vars.set();
 
     public void reportKeyEvent(long window, int keyCode, int scanCode, int eventType, int modifiers) {
         keyEvent.set(new KeyEvent(scanCode, eventType, modifiers));

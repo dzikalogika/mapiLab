@@ -1,4 +1,4 @@
-package app.model;
+package app.old;
 
 public enum Side {
     TOP, LEFT, BOTTOM, RIGHT;

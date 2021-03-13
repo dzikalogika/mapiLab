@@ -1,4 +1,4 @@
-package app.model;
+package app.old;
 
 public enum Pos {
     HORIZONTAL_CENTER, VERTICAL_CENTER;

@@ -1,15 +1,15 @@
 package app.model.input;
 
-import app.model.variable.SimpleVar;
-import app.model.variable.Var;
 import org.joml.Vector2d;
 import suite.suite.Subject;
 import suite.suite.Suite;
+import vars.vars.Var;
+import vars.vars.Vars;
 
 public class Mouse {
 
     public static class Button {
-        Var<ButtonEvent> state = SimpleVar.emit();
+        Var<ButtonEvent> state = Vars.set();
 
         public Var<ButtonEvent> getState() {
             return state;
@@ -41,8 +41,8 @@ public class Mouse {
     }
 
     public static class Scroll {
-        Var<Double> x = SimpleVar.emit(0.0);
-        Var<Double> y = SimpleVar.emit(0.0);
+        Var<Double> x = Vars.set(0.0);
+        Var<Double> y = Vars.set(0.0);
 
         public Var<Double> getX() {
             return x;
@@ -54,7 +54,7 @@ public class Mouse {
     }
 
     Subject $buttons = Suite.thready();
-    Var<Vector2d> position = SimpleVar.emit();
+    Var<Vector2d> position = Vars.set();
     Scroll scroll = new Scroll();
 
     public void reportPositionEvent(long window, double posX, double posY) {

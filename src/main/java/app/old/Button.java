@@ -1,5 +1,6 @@
-package app.model;
+package app.old;
 
+import app.model.Rectangle;
 import suite.suite.Subject;
 
 public class Button extends Rectangle {

@@ -10,6 +10,9 @@ sourceControl {
     gitRepository(new URI("C://Users/1/Desktop/PRO/PRO_Java/brackettree")) {
         producesModule("lpo:brackettree")
     }
+    gitRepository(new URI("C://Users/1/Desktop/PRO/PRO_Java/vars")) {
+        producesModule("lpo:vars")
+    }
 
 //    ONLINE
 
@@ -19,5 +22,8 @@ sourceControl {
 //
 //    gitRepository(new URI("https://github.com/lpogic/brackettree.git")) {
 //        producesModule("lpo:brackettree")
+//    }
+//    gitRepository(new URI("https://github.com/lpogic/vars.git")) {
+//        producesModule("lpo:vars")
 //    }
 }

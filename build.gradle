@@ -63,4 +63,10 @@ dependencies {
             branch = 'master'
         }
     }
+
+    implementation("lpo:vars") {
+        version {
+            branch = 'master'
+        }
+    }
 }

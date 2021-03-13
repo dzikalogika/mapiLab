@@ -1,4 +1,4 @@
-package app.model;
+package app.old;
 
 public enum Dim {
     WIDTH, HEIGHT;
