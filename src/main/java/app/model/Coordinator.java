@@ -8,7 +8,7 @@ public class Coordinator {
 
     Subject $coordinates = $();
 
-    public void distribute(Rectangle r, Point p) {
+    public void distribute(ColorRectangle r, Point p) {
         $coordinates.put(r, p);
     }
 }

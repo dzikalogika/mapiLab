@@ -1,48 +1,29 @@
 package app.model.input;
 
-import org.joml.Vector2d;
+import app.model.Point;
+import app.model.Window;
 import suite.suite.Subject;
 import suite.suite.Suite;
-import vars.vars.Var;
-import vars.vars.Vars;
+
+import static org.lwjgl.glfw.GLFW.*;
 
 public class Mouse {
 
     public static class Button {
-        Var<ButtonEvent> state = Vars.set();
+        Var<Boolean> pressed = new Var<>(false);
 
-        public Var<ButtonEvent> getState() {
-            return state;
-        }
-    }
-
-    public static class ButtonEvent {
-        int action;
-        Vector2d position;
-        int modifiers;
-
-        public ButtonEvent(int action, Vector2d position, int modifiers) {
-            this.action = action;
-            this.position = position;
-            this.modifiers = modifiers;
+        public boolean isPressed() {
+            return pressed.get();
         }
 
-        public int getAction() {
-            return action;
-        }
-
-        public Vector2d getPosition() {
-            return position;
-        }
-
-        public int getModifiers() {
-            return modifiers;
+        public Source<Boolean> pressed() {
+            return pressed;
         }
     }
 
     public static class Scroll {
-        Var<Double> x = Vars.set(0.0);
-        Var<Double> y = Vars.set(0.0);
+        Var<Double> x = new Var<>();
+        Var<Double> y = new Var<>();
 
         public Var<Double> getX() {
             return x;
@@ -53,12 +34,19 @@ public class Mouse {
         }
     }
 
+    Window window;
     Subject $buttons = Suite.thready();
-    Var<Vector2d> position = Vars.set();
+    Var<Point> position = new Var<>();
     Scroll scroll = new Scroll();
+    Button leftButton = new Button();
+    Button rightButton = new Button();
 
-    public void reportPositionEvent(long window, double posX, double posY) {
-        position.set(new Vector2d(posX, posY));
+    public Mouse(Window window) {
+        this.window = window;
+    }
+
+    public void reportPositionEvent(long w, double posX, double posY) {
+        position.set(new Point(posX, posY));
     }
 
     public void reportScrollEvent(long window, double offsetX, double offsetY) {
@@ -67,7 +55,11 @@ public class Mouse {
     }
 
     public void reportMouseButtonEvent(long window, int button, int action, int modifiers) {
-        getButton(button).state.set(new ButtonEvent(action, position.get(), modifiers));
+//        System.out.printf("button %s action %s modifiers %s%n", button, action, modifiers);
+        switch (button) {
+            case GLFW_MOUSE_BUTTON_1 -> leftButton.pressed.set(action == GLFW_PRESS);
+            case GLFW_MOUSE_BUTTON_2 -> rightButton.pressed.set(action == GLFW_PRESS);
+        }
     }
 
     public Button getButton(int button) {
@@ -82,7 +74,16 @@ public class Mouse {
         return scroll;
     }
 
-    public Var<Vector2d> getPosition() {
+
+    public Source<Point> getPosition() {
         return position;
+    }
+
+    public Button getLeftButton() {
+        return leftButton;
+    }
+
+    public Button getRightButton() {
+        return rightButton;
     }
 }

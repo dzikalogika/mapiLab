@@ -4,16 +4,15 @@ public class Point {
 
     float x;
     float y;
-    float z;
-
-    public Point(float x, float y, float z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
 
     public Point(float x, float y) {
-        this(x, y, 0);
+        this.x = x;
+        this.y = y;
+    }
+
+    public Point(Number x, Number y) {
+        this.x = x.floatValue();
+        this.y = y.floatValue();
     }
 
     public float getX() {
@@ -32,11 +31,10 @@ public class Point {
         this.y = y;
     }
 
-    public float getZ() {
-        return z;
-    }
-
-    public void setZ(float z) {
-        this.z = z;
+    @Override
+    public String toString() {
+        return "x[ " + x +
+                " ] y[ " + y +
+                " ]";
     }
 }

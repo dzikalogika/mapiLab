@@ -2,6 +2,7 @@ package app.model;
 
 import app.model.input.Keyboard;
 import app.model.input.Mouse;
+import app.model.input.Var;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
@@ -43,7 +44,7 @@ public class Window {
             glfwPollEvents();
             for(Window win : $windows.eachIn().eachAs(Window.class)) {
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                win.update();
+                win.update_();
                 glfwSwapBuffers(win.getGlid());
                 if(glfwWindowShouldClose(win.getGlid())) $windows.unset(win.getGlid());
             }
@@ -67,11 +68,12 @@ public class Window {
             GLUtil.setupDebugMessageCallback();
 
 //            glEnable(GL_ALPHA_TEST);
-            glEnable(GL_DEPTH_TEST);
+//            glEnable(GL_DEPTH_TEST);
             glEnable(GL_CULL_FACE);
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+            window.setup1();
             window.setup();
 
             long glid = window.getGlid();
@@ -87,15 +89,14 @@ public class Window {
     long glid;
 
     protected final Keyboard keyboard = new Keyboard();
-    protected final Mouse mouse = new Mouse();
-    protected Decorator decorator;
-    protected Coordinator coordinator;
-    int width;
-    int height;
+    protected final Mouse mouse = new Mouse(this);
+    protected Drawer drawer;
+    Var<Number> width = new Var<>(800);
+    Var<Number> height = new Var<>(600);
     protected Color color;
 
-    public void setup0() {
-        glid = glfwCreateWindow(width, height, "Fancy title", NULL, NULL);
+    void setup0() {
+        glid = glfwCreateWindow(width.get().intValue(), height.get().intValue(), "Fancy title", NULL, NULL);
         if (glid == NULL) throw new RuntimeException("Window based failed");
 
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // the window will stay hidden after creation
@@ -116,8 +117,20 @@ public class Window {
         glfwSetCharModsCallback(glid, keyboard::reportCharEvent);
     }
 
+    void setup1() {
+        drawer = new Drawer(this, new ColorRectangleDrawer(),
+                new ColorTextDrawer(new Font("ttf/trebuc.ttf"), 24));
+    }
+
     public void setup() {
 
+    }
+
+    public void update_() {
+        glClearColor(color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha());
+        update();
+        drawer.draw();
+        processInput(getGlid());
     }
 
     public void update() {
@@ -128,12 +141,12 @@ public class Window {
         this.color = color;
     }
 
-    public void setWidth(int width) {
-        this.width = width;
+    private void setWidth(int width) {
+        this.width.set(width);
     }
 
-    public void setHeight(int height) {
-        this.height = height;
+    private void setHeight(int height) {
+        this.height.set(height);
     }
 
     public Color getColor() {
@@ -141,11 +154,11 @@ public class Window {
     }
 
     public int getWidth() {
-        return width;
+        return width.get().intValue();
     }
 
     public int getHeight() {
-        return height;
+        return height.get().intValue();
     }
 
     public long getGlid() {
@@ -166,5 +179,18 @@ public class Window {
 
     public void setLockKeyModifiers(boolean lock) {
         glfwSetInputMode(glid, GLFW_LOCK_KEY_MODS, lock ? GLFW_TRUE : GLFW_FALSE);
+    }
+
+    public void draw(ColorRectangle rectangle) {
+        drawer.set(rectangle);
+    }
+
+    public void draw(ColorText text) {
+        drawer.set(text);
+    }
+
+    void processInput(long window) {
+        if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, true);
     }
 }

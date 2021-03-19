@@ -92,7 +92,7 @@ public class Camera {
                 pitch = -89.0f;
         }
 
-        // update Front, Right and Up Vectors using the updated Euler angles
+        // update_ Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();
     }
 

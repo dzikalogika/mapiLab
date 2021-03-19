@@ -13,6 +13,10 @@ public class Color {
         return new Color(red, green, blue, alpha);
     }
 
+    public static Color mix(float red, float green, float blue) {
+        return mix(red, green, blue, 1f);
+    }
+
     public Color(float red, float green, float blue, float alpha) {
         this.red = red;
         this.green = green;
@@ -21,6 +25,25 @@ public class Color {
     }
 
     public Color(float red, float green, float blue) {
+        this(red, green, blue, 1f);
+    }
+
+    public static Color mix(Number red, Number green, Number blue, Number alpha) {
+        return new Color(red, green, blue, alpha);
+    }
+
+    public static Color mix(Number red, Number green, Number blue) {
+        return mix(red, green, blue, 1f);
+    }
+
+    public Color(Number red, Number green, Number blue, Number alpha) {
+        this.red = red.floatValue();
+        this.green = green.floatValue();
+        this.blue = blue.floatValue();
+        this.alpha = alpha.floatValue();
+    }
+
+    public Color(Number red, Number green, Number blue) {
         this(red, green, blue, 1f);
     }
 
