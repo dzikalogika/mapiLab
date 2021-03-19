@@ -4,7 +4,7 @@ import app.model.input.Var;
 
 import java.util.function.Supplier;
 
-public class ColorText {
+public class ColorText extends Component {
 
     public enum HorizontalReference {
         LEFT, CENTER, RIGHT
@@ -21,7 +21,8 @@ public class ColorText {
     Var<Color> color;
     Var<Number> size;
 
-    public ColorText() {
+    public ColorText(Host host) {
+        super(host);
         text = new Var<>("");
         position = new Var<>(new Point(0,0));
         horizontalReference = new Var<>(HorizontalReference.CENTER);
@@ -39,9 +40,8 @@ public class ColorText {
         return this;
     }
 
-    public ColorText setText(Supplier<String> text) {
-        this.text.draft(text);
-        return this;
+    public Var<String> text() {
+        return text;
     }
 
     public Point getPosition() {
@@ -53,9 +53,8 @@ public class ColorText {
         return this;
     }
 
-    public ColorText setPosition(Supplier<Point> position) {
-        this.position.draft(position);
-        return this;
+    public Var<Point> position() {
+        return position;
     }
 
     public HorizontalReference getHReference() {
@@ -68,7 +67,7 @@ public class ColorText {
     }
 
     public ColorText setHReference(Supplier<HorizontalReference> reference) {
-        this.horizontalReference.draft(reference);
+        this.horizontalReference.let(reference);
         return this;
     }
 
@@ -82,7 +81,7 @@ public class ColorText {
     }
 
     public ColorText setVReference(Supplier<VerticalReference> reference) {
-        this.verticalReference.draft(reference);
+        this.verticalReference.let(reference);
         return this;
     }
 
@@ -95,9 +94,8 @@ public class ColorText {
         return this;
     }
 
-    public ColorText setColor(Supplier<Color> color) {
-        this.color.draft(color);
-        return this;
+    public Var<Color> color() {
+        return color;
     }
 
     public float getSize() {
@@ -109,12 +107,12 @@ public class ColorText {
         return this;
     }
 
-    public ColorText setSize(Supplier<Number> size) {
-        this.size.draft(size);
-        return this;
+    public Var<Number> size() {
+        return size;
     }
 
     public Supplier<Float> width() {
         return () -> 10f;
+//        return () -> order(FontManager.class).getFont(font.get()).getWidth(text.get());
     }
 }

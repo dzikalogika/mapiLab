@@ -17,7 +17,7 @@ import static org.lwjgl.opengl.GL11.GL_ONE_MINUS_SRC_ALPHA;
 import static org.lwjgl.system.MemoryUtil.NULL;
 import static suite.suite.$uite.$;
 
-public class Window {
+public class Window implements Composite {
 
     static Subject $windows = $();
 
@@ -137,6 +137,11 @@ public class Window {
 
     }
 
+    @Override
+    public Subject order(Subject trade) {
+        return $();
+    }
+
     public void setColor(Color color) {
         this.color = color;
     }
@@ -181,11 +186,11 @@ public class Window {
         glfwSetInputMode(glid, GLFW_LOCK_KEY_MODS, lock ? GLFW_TRUE : GLFW_FALSE);
     }
 
-    public void draw(ColorRectangle rectangle) {
+    public void show(ColorRectangle rectangle) {
         drawer.set(rectangle);
     }
 
-    public void draw(ColorText text) {
+    public void show(ColorText text) {
         drawer.set(text);
     }
 

@@ -2,6 +2,10 @@ package app.model;
 
 public class Point {
 
+    public static Point zero() {
+        return new Point(0,0);
+    }
+
     float x;
     float y;
 

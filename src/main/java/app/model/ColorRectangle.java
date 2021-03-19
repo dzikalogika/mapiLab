@@ -4,16 +4,15 @@ package app.model;
 import app.model.input.Source;
 import app.model.input.Var;
 
-import java.util.function.Supplier;
-
-public class ColorRectangle {
+public class ColorRectangle extends Component {
 
     Var<Number> width;
     Var<Number> height;
     Var<Point> position;
     Var<Color> color;
 
-    public ColorRectangle() {
+    public ColorRectangle(Host host) {
+        super(host);
         width = new Var<>(100);
         height = new Var<>(100);
         position = new Var<>(new Point(400, 300));
