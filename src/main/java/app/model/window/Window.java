@@ -1,8 +1,13 @@
-package app.model;
+package app.model.window;
 
+import app.model.Color;
+import app.model.component.ColorRectangle;
+import app.model.component.ColorText;
+import app.model.component.ImageRectangle;
 import app.model.input.Keyboard;
 import app.model.input.Mouse;
-import app.model.input.Var;
+import app.model.trade.Composite;
+import app.model.var.Var;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLUtil;
@@ -118,8 +123,7 @@ public class Window implements Composite {
     }
 
     void setup1() {
-        drawer = new Drawer(this, new ColorRectangleDrawer(),
-                new ColorTextDrawer(new Font("ttf/trebuc.ttf"), 24));
+        drawer = new Drawer(this);
     }
 
     public void setup() {
@@ -192,6 +196,10 @@ public class Window implements Composite {
 
     public void show(ColorText text) {
         drawer.set(text);
+    }
+
+    public void show(ImageRectangle rectangle) {
+        drawer.set(rectangle);
     }
 
     void processInput(long window) {

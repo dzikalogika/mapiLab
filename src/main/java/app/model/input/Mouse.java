@@ -1,7 +1,9 @@
 package app.model.input;
 
 import app.model.Point;
-import app.model.Window;
+import app.model.window.Window;
+import app.model.var.Source;
+import app.model.var.Var;
 import suite.suite.Subject;
 import suite.suite.Suite;
 
@@ -55,7 +57,6 @@ public class Mouse {
     }
 
     public void reportMouseButtonEvent(long window, int button, int action, int modifiers) {
-//        System.out.printf("button %s action %s modifiers %s%n", button, action, modifiers);
         switch (button) {
             case GLFW_MOUSE_BUTTON_1 -> leftButton.pressed.set(action == GLFW_PRESS);
             case GLFW_MOUSE_BUTTON_2 -> rightButton.pressed.set(action == GLFW_PRESS);

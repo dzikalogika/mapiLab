@@ -1,4 +1,4 @@
-package app.model;
+package app.model.trade;
 
 import suite.suite.Subject;
 

@@ -1,6 +1,14 @@
-package app.model;
+package app.model.component;
 
-import app.model.input.Var;
+import app.model.Color;
+import app.model.Point;
+import app.model.font.Font;
+import app.model.font.FontManager;
+import app.model.trade.Component;
+import app.model.trade.Host;
+import app.model.var.Source;
+import app.model.var.PreservativeVar;
+import app.model.var.Var;
 
 import java.util.function.Supplier;
 
@@ -20,6 +28,9 @@ public class ColorText extends Component {
     Var<VerticalReference> verticalReference;
     Var<Color> color;
     Var<Number> size;
+    Var<Font> font;
+
+    PreservativeVar<Number> width;
 
     public ColorText(Host host) {
         super(host);
@@ -29,6 +40,10 @@ public class ColorText extends Component {
         verticalReference = new Var<>(VerticalReference.CENTER);
         color = new Var<>(Color.mix(0,0,1));
         size = new Var<>(24);
+        font = new Var<>(Font.TREBUC);
+
+        width = new PreservativeVar<>(() -> order(FontManager.class).getFont(font.get()).getStringWidth(text.get(), size.get().floatValue()),
+                text, size, font);
     }
 
     public String getText() {
@@ -111,8 +126,24 @@ public class ColorText extends Component {
         return size;
     }
 
-    public Supplier<Float> width() {
-        return () -> 10f;
-//        return () -> order(FontManager.class).getFont(font.get()).getWidth(text.get());
+    public Font getFont() {
+        return font.get();
+    }
+
+    public ColorText setFont(Font font) {
+        this.font.set(font);
+        return this;
+    }
+
+    public Var<Font> font() {
+        return font;
+    }
+
+    public Source<Number> width() {
+        return width;
+    }
+
+    public float getWidth() {
+        return width.get().floatValue();
     }
 }

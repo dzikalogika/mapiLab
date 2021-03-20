@@ -1,4 +1,4 @@
-package app.model;
+package app.model.graphic;
 
 import brackettree.Discovered;
 import org.joml.Matrix2f;
@@ -103,10 +103,10 @@ public class Shader implements Discovered {
         glUniformMatrix4fv(glGetUniformLocation(glid, name), false, matrix.get(new float[16]));
     }
 
-    public void setTexture(String name, int index, Texture texture) {
+    public void setTexture(String name, int index, LoadedImage image) {
         use();
         set(name, index);
         glActiveTexture(GL_TEXTURE0 + index);
-        glBindTexture(GL_TEXTURE_2D, texture.getGlid());
+        glBindTexture(GL_TEXTURE_2D, image.getGlid());
     }
 }

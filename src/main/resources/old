@@ -62,14 +62,14 @@ public class Main {
             "\n" +
             "in vec2 TexCoord;\n" +
             "\n" +
-            "// texture sampler\n" +
+            "// image sampler\n" +
             "uniform float stosunek;" +
             "uniform sampler2D texture1;\n" +
             "uniform sampler2D texture2;\n" +
             "\n" +
             "void main()\n" +
             "{\n" +
-            "\tFragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), stosunek);\n" +
+            "\tFragColor = mix(image(texture1, TexCoord), image(texture2, TexCoord), stosunek);\n" +
             "}";
 
     public static void main(String[] args) {
@@ -139,9 +139,9 @@ public class Main {
         int texture1 = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, texture1);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set texture wrapping to GL_REPEAT (default wrapping method)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	// set image wrapping to GL_REPEAT (default wrapping method)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        // set texture filtering parameters
+        // set image filtering parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imageWidth[0], imageHeight[0], 0, GL_RGB, GL_UNSIGNED_BYTE, imageData);
@@ -153,9 +153,9 @@ public class Main {
         int texture2 = glGenTextures();
         glBindTexture(GL_TEXTURE_2D, texture2);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);	// set texture wrapping to GL_REPEAT (default wrapping method)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);	// set image wrapping to GL_REPEAT (default wrapping method)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        // set texture filtering parameters
+        // set image filtering parameters
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, imageWidth[0], imageHeight[0], 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);

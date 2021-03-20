@@ -1,8 +1,12 @@
-package app.model;
+package app.model.component;
 
 
-import app.model.input.Source;
-import app.model.input.Var;
+import app.model.Color;
+import app.model.Point;
+import app.model.trade.Component;
+import app.model.trade.Host;
+import app.model.var.Source;
+import app.model.var.Var;
 
 public class ColorRectangle extends Component {
 
@@ -31,6 +35,10 @@ public class ColorRectangle extends Component {
     public ColorRectangle setHeight(Number height) {
         this.height.set(height);
         return this;
+    }
+
+    public Var<Number> height() {
+        return height;
     }
 
     public ColorRectangle setPosition(Point position) {
@@ -71,10 +79,10 @@ public class ColorRectangle extends Component {
     public boolean contains(Point point) {
         Point position = getPosition();
         float width = getWidth();
-        float hd = point.y - position.y;
+        float hd = point.getY() - position.getY();
         if(Math.abs(hd) > width / 2) return false;
         float height = getHeight();
-        float vd = point.x - position.x;
+        float vd = point.getX() - position.getX();
         return Math.abs(vd) <= height / 2;
     }
 }

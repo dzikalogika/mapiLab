@@ -1,9 +1,10 @@
-package app.model;
+package app.model.window;
 
+import app.model.Color;
+import app.model.component.ColorRectangle;
+import app.model.Point;
+import app.model.graphic.Shader;
 import brackettree.reader.BracketTree;
-import org.joml.Matrix4f;
-
-import java.util.Collection;
 
 import static org.lwjgl.opengl.GL30.*;
 
@@ -11,15 +12,14 @@ public class ColorRectangleDrawer {
 
     int glid;
     Shader shader;
-    float[] sentArray = new float[0];
 
     private final int vertexGlid;
 
-    public ColorRectangleDrawer() {
+    public ColorRectangleDrawer(Shader shader) {
         glid = glGenVertexArrays();
 
-        shader = BracketTree.read(Shader.class.getClassLoader().
-                getResourceAsStream("jorg/colorRectangleShader.tree")).as(Shader.class);
+        this.shader = shader != null ? shader : BracketTree.read(Shader.class.getClassLoader().
+                getResourceAsStream("forest/colorRectangleShader.tree")).as(Shader.class);
 
         vertexGlid = glGenBuffers();
         glBindVertexArray(glid);
@@ -53,7 +53,8 @@ public class ColorRectangleDrawer {
         Color color = rectangle.getColor();
 
         float[] vertex = new float[]{
-                position.x, position.y, width, height, color.red, color.green, color.blue, color.alpha
+                position.getX(), position.getY(), width, height,
+                color.getRed(), color.getGreen(), color.getBlue(), color.getAlpha()
         };
 
         glBindVertexArray(glid);

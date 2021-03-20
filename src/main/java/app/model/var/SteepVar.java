@@ -1,4 +1,4 @@
-package app.model.input;
+package app.model.var;
 
 import suite.suite.Subject;
 

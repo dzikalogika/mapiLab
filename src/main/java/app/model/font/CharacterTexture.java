@@ -1,4 +1,4 @@
-package app.model;
+package app.model.font;
 
 import org.lwjgl.stb.STBTTBakedChar;
 
